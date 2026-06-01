@@ -88,11 +88,6 @@ function buildDeck(deckName) {
   return shuffle(cards);
 }
 
-function isExcluded(deckName, card) {
-  const excl = state.decks[deckName].excluded;
-  return excl.some(e => e.value === card.value && e.isCrit === card.isCrit);
-}
-
 /* ── State ──────────────────────────────────────────────────── */
 const state = {
   decks: {},
@@ -109,7 +104,7 @@ function initDecks() {
     state.decks[name] = {
       available: buildDeck(name),
       discard:   [],
-      excluded:  prev ? prev.excluded : [],  // keep exclusions across reset
+      excluded:  [],
     };
   });
 }
@@ -127,10 +122,9 @@ function drawFromDeck(deckName, count) {
 
   while (drawn.length < count) {
     if (deck.available.length === 0) {
-      const eligible = deck.discard.filter(c => !isExcluded(deckName, c));
-      if (eligible.length === 0) break;   // nothing left to reshuffle
-      deck.available = shuffle(eligible);
-      deck.discard    = deck.discard.filter(c => isExcluded(deckName, c));
+      if (deck.discard.length === 0) break;
+      deck.available = shuffle(deck.discard.slice());
+      deck.discard    = [];
       reshuffled      = true;
     }
     drawn.push(deck.available.pop());
@@ -167,32 +161,16 @@ function redrawCard(resultIndex) {
   saveState();
 }
 
-/* ── Exclusions ─────────────────────────────────────────────── */
-function toggleExclusion(deckName, value, isCrit) {
-  const deck = state.decks[deckName];
-  const idx  = deck.excluded.findIndex(e => e.value === value && e.isCrit === isCrit);
 
-  if (idx === -1) {
-    // Add exclusion — move matching cards out of available and discard
-    deck.excluded.push({ value, isCrit });
-    deck.available = deck.available.filter(c => !(c.value === value && c.isCrit === isCrit));
-    deck.discard   = deck.discard.filter(c => !(c.value === value && c.isCrit === isCrit));
-  } else {
-    // Remove exclusion — put cards back into available (reshuffled in)
-    deck.excluded.splice(idx, 1);
-    const types    = getCardTypes(deckName);
-    const typeDef  = types.find(t => t.value === value && t.isCrit === isCrit);
-    const count    = typeDef ? typeDef.total : 0;
-    const restored = [];
-    for (let i = 0; i < count; i++) {
-      restored.push({ value, isCrit, deck: deckName });
-    }
-    deck.available = shuffle([...deck.available, ...restored]);
-  }
-
-  renderDeckStatus();
-  renderExclusionToggles(deckName);
-  renderTotalBar();
+/**
+ * Toggle the discarded state of a result card.
+ * Discarded cards stay visible but are struck out and excluded from totals.
+ */
+function discardCard(resultIndex) {
+  const card = state.currentResults[resultIndex];
+  if (!card) return;
+  card.isDiscarded = !card.isDiscarded;
+  renderResults(state.currentResults, []);
   saveState();
 }
 
@@ -240,7 +218,6 @@ function cacheDom() {
       counter:  document.getElementById('counter-' + name),
       progress: document.getElementById('progress-' + name),
       discard:  document.getElementById('discard-' + name),
-      exclRow:  document.getElementById('excl-row-' + name),
     };
   });
 }
@@ -250,64 +227,20 @@ function renderDeckStatus() {
   DECK_NAMES.forEach(name => {
     const deck  = state.decks[name];
     const avail = deck.available.length;
-    const excl  = deck.excluded.length > 0;
     const els   = dom[name];
 
-    // Active cards = available + discard (excludes excluded cards)
-    const active = DECK_SIZE - deck.excluded.reduce((sum, e) => {
-      const types = getCardTypes(name);
-      const t = types.find(t => t.value === e.value && t.isCrit === e.isCrit);
-      return sum + (t ? t.total : 0);
-    }, 0);
+    els.counter.innerHTML = '<span>' + avail + '</span> / 18';
 
-    els.counter.innerHTML = '<span>' + avail + '</span> / ' + active +
-      (excl ? ' <span style="color:var(--color-red-bright);font-size:9px;" title="Some cards excluded">&#9888;</span>' : '');
-
-    const pct = active > 0 ? (avail / active) * 100 : 0;
+    const pct = (avail / 18) * 100;
     els.progress.style.width = pct + '%';
 
     els.discard.textContent =
       deck.discard.length > 0 ? deck.discard.length + ' in discard' : 'Discard empty';
 
-    // Update input max
     els.input.max = avail;
     if ((parseInt(els.input.value, 10) || 0) > avail) {
       els.input.value = avail;
     }
-  });
-}
-
-function renderExclusionToggles(deckName) {
-  const container = dom[deckName].exclRow;
-  if (!container) return;
-
-  const deck  = state.decks[deckName];
-  const types = getCardTypes(deckName);
-
-  container.innerHTML = types.map(t => {
-    const key      = typeKey(t.value, t.isCrit);
-    const active   = deck.excluded.some(e => e.value === t.value && e.isCrit === t.isCrit);
-    const label    = t.value === 0 ? '—' : (t.value + (t.isCrit ? '★' : ''));
-    const countLbl = '×' + t.total;
-    return '<button class="excl-toggle' + (active ? ' is-excluded' : '') + '" ' +
-      'data-deck="' + deckName + '" ' +
-      'data-value="' + t.value + '" ' +
-      'data-crit="' + t.isCrit + '" ' +
-      'aria-pressed="' + active + '" ' +
-      'title="' + (active ? 'Re-include' : 'Exclude') + ' ' + label + ' cards from ' + DECK_DEFS[deckName].label + ' deck">' +
-      '<span class="excl-toggle__label">' + label + '</span>' +
-      '<span class="excl-toggle__count">' + countLbl + '</span>' +
-      '</button>';
-  }).join('');
-
-  // Wire buttons
-  container.querySelectorAll('.excl-toggle').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const dn   = btn.dataset.deck;
-      const val  = parseInt(btn.dataset.value, 10);
-      const crit = btn.dataset.crit === 'true';
-      toggleExclusion(dn, val, crit);
-    });
   });
 }
 
@@ -344,19 +277,26 @@ function cardHTML(card, index, animDelay) {
       '<span class="result-card__value">' + card.value + '</span>' +
       (card.isCrit ? '<span class="result-card__crit-badge">Crit</span>' : '');
 
-  const redrawBtn =
-    '<button class="result-card__redraw" data-index="' + index + '" ' +
-    'aria-label="Redraw this card" title="Redraw">\u21BA</button>';
+  const discardedClass = card.isDiscarded ? 'result-card--discarded' : '';
+
+  const actionBtns =
+    '<div class="result-card__actions">' +
+    '<button class="result-card__btn result-card__btn--discard' + (card.isDiscarded ? ' is-active' : '') + '" data-action="discard" data-index="' + index + '" ' +
+    'aria-pressed="' + !!card.isDiscarded + '" aria-label="' + (card.isDiscarded ? 'Restore' : 'Discard') + ' this card" title="' + (card.isDiscarded ? 'Restore' : 'Discard') + '">' +
+    (card.isDiscarded ? '\u21A9' : '\u2715') + '</button>' +
+    '<button class="result-card__btn result-card__btn--redraw" data-action="redraw" data-index="' + index + '" ' +
+    'aria-label="Redraw this card" title="Redraw" ' + (card.isDiscarded ? 'disabled' : '') + '>\u21BA</button>' +
+    '</div>';
 
   const redrawBadge = card.isRedrawn
     ? '<span class="result-card__redrawn-badge" title="Redrawn">\u21BA</span>'
     : '';
 
-  return '<div class="result-card ' + deckClass + ' ' + critClass + ' ' + blankClass + ' ' + redrawClass + '" ' +
+  return '<div class="result-card ' + deckClass + ' ' + critClass + ' ' + blankClass + ' ' + redrawClass + ' ' + discardedClass + '" ' +
     'style="' + style + '">' +
     redrawBadge +
     inner +
-    redrawBtn +
+    actionBtns +
     '</div>';
 }
 
@@ -380,9 +320,11 @@ function renderResults(cards, reshuffles) {
     return;
   }
 
-  const totalDmg = cards.reduce((s, c) => s + c.value, 0);
-  const crits    = cards.filter(c => c.isCrit).length;
-  const blanks   = cards.filter(c => c.value === 0).length;
+  const active   = cards.filter(c => !c.isDiscarded);
+  const totalDmg = active.reduce((s, c) => s + c.value, 0);
+  const crits    = active.filter(c => c.isCrit).length;
+  const blanks   = active.filter(c => c.value === 0).length;
+  const discarded = cards.filter(c => c.isDiscarded).length;
 
   const reshuffleHTML = reshuffles.length > 0
     ? '<div style="margin-bottom:var(--space-3);">' +
@@ -401,12 +343,17 @@ function renderResults(cards, reshuffles) {
     '<div class="results-stat"><span class="results-stat__value">' + totalDmg + '</span><span class="results-stat__label">Total</span></div>' +
     '<div class="results-stat"><span class="results-stat__value' + (crits ? ' results-stat__value--crit' : '') + '">' + crits + '</span><span class="results-stat__label">Crits</span></div>' +
     '<div class="results-stat"><span class="results-stat__value">' + blanks + '</span><span class="results-stat__label">Blanks</span></div>' +
+    '<div class="results-stat"><span class="results-stat__value' + (discarded ? ' results-stat__value--discarded' : '') + '">' + discarded + '</span><span class="results-stat__label">Discarded</span></div>' +
     '</div></div>' +
     '<div class="cards-grid" role="list">' + cardsHTML + '</div>';
 
-  // Wire redraw buttons
-  dom.resultsArea.querySelectorAll('.result-card__redraw').forEach(btn => {
-    btn.addEventListener('click', () => redrawCard(parseInt(btn.dataset.index, 10)));
+  // Wire card action buttons
+  dom.resultsArea.querySelectorAll('[data-action]').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const idx = parseInt(btn.dataset.index, 10);
+      if (btn.dataset.action === 'redraw')  redrawCard(idx);
+      if (btn.dataset.action === 'discard') discardCard(idx);
+    });
   });
 }
 
@@ -475,10 +422,7 @@ function handleReset() {
   state.currentResults = [];
   initDecks();
 
-  DECK_NAMES.forEach(name => {
-    dom[name].input.value = 0;
-    renderExclusionToggles(name);
-  });
+  DECK_NAMES.forEach(name => { dom[name].input.value = 0; });
 
   renderDeckStatus();
   renderHistory();
@@ -551,8 +495,6 @@ document.addEventListener('DOMContentLoaded', function() {
   renderDeckStatus();
   renderHistory();
   renderTotalBar();
-
-  DECK_NAMES.forEach(name => renderExclusionToggles(name));
 
   if (restored) showToast('Session restored', 'info', 2500);
 });
