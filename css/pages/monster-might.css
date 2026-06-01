@@ -607,3 +607,111 @@
   .result-card { width: 60px; height: 80px; }
   .result-card__value { font-size: var(--text-3xl); }
 }
+
+/* ── Exclusion toggles ──────────────────────────────────────── */
+.deck-panel__excl-label {
+  font-family: var(--font-display);
+  font-size: 9px;
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-2);
+}
+
+.excl-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.excl-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: transparent;
+  cursor: pointer;
+  transition: background-color var(--transition-fast),
+              border-color var(--transition-fast),
+              opacity var(--transition-fast);
+}
+
+.excl-toggle__label {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: var(--font-bold);
+  color: var(--deck-color, var(--color-text-secondary));
+  line-height: 1;
+}
+
+.excl-toggle__count {
+  font-family: var(--font-display);
+  font-size: 9px;
+  color: var(--color-text-muted);
+  line-height: 1;
+}
+
+.excl-toggle:hover {
+  border-color: var(--deck-color, var(--color-border-bright));
+  background-color: var(--color-bg-overlay);
+}
+
+.excl-toggle.is-excluded {
+  background-color: rgba(155, 28, 28, 0.15);
+  border-color: var(--color-red-muted);
+  opacity: 0.7;
+  text-decoration: line-through;
+}
+
+.excl-toggle.is-excluded .excl-toggle__label {
+  color: var(--color-text-muted);
+}
+
+/* ── Redraw button on result cards ──────────────────────────── */
+.result-card__redraw {
+  position: absolute;
+  bottom: 3px;
+  right: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--radius-sm);
+  background-color: rgba(0, 0, 0, 0.5);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--transition-fast),
+              background-color var(--transition-fast),
+              color var(--transition-fast);
+}
+
+.result-card:hover .result-card__redraw {
+  opacity: 1;
+}
+
+.result-card__redraw:hover {
+  background-color: var(--color-gold-dim);
+  border-color: var(--color-gold-muted);
+  color: var(--color-gold-bright);
+}
+
+/* Redrawn card indicator */
+.result-card--redrawn {
+  border-style: dashed;
+}
+
+.result-card__redrawn-badge {
+  position: absolute;
+  top: 3px;
+  left: 4px;
+  font-size: 9px;
+  color: var(--color-arcane);
+  line-height: 1;
+}

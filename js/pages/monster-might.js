@@ -1,7 +1,6 @@
 'use strict';
 
 /* ── Deck definitions ───────────────────────────────────────────
-   Each entry: { value: number, isCrit: boolean }
    6 unique card faces × 3 copies = 18 cards per deck.
 ─────────────────────────────────────────────────────────────── */
 const DECK_DEFS = {
@@ -51,16 +50,8 @@ const DECK_DEFS = {
   },
 };
 
-const DECK_NAMES  = Object.keys(DECK_DEFS);
-const DECK_SIZE   = 18;   // 6 faces × 3 copies
-const MAX_DRAW    = 18;
-
-/* ── State ──────────────────────────────────────────────────── */
-const state = {
-  decks:    {},   // per-deck: { available: Card[], discard: Card[] }
-  history:  [],   // array of round records
-  round:    0,
-};
+const DECK_NAMES = Object.keys(DECK_DEFS);
+const DECK_SIZE  = 18;
 
 /* ── Helpers ────────────────────────────────────────────────── */
 function shuffle(arr) {
@@ -72,28 +63,62 @@ function shuffle(arr) {
   return a;
 }
 
+function typeKey(value, isCrit) {
+  return value + '-' + isCrit;
+}
+
+/** Return distinct card types for a deck, sorted by value. */
+function getCardTypes(deckName) {
+  const faces = DECK_DEFS[deckName].faces;
+  const map = {};
+  faces.forEach(f => {
+    const k = typeKey(f.value, f.isCrit);
+    if (!map[k]) map[k] = { value: f.value, isCrit: f.isCrit, total: 0 };
+    map[k].total += 3;
+  });
+  return Object.values(map).sort((a, b) => a.value - b.value || a.isCrit - b.isCrit);
+}
+
 function buildDeck(deckName) {
   const faces = DECK_DEFS[deckName].faces;
   const cards = [];
-  for (let copy = 0; copy < 3; copy++) {
+  for (let i = 0; i < 3; i++) {
     faces.forEach(f => cards.push({ value: f.value, isCrit: f.isCrit, deck: deckName }));
   }
   return shuffle(cards);
 }
 
+function isExcluded(deckName, card) {
+  const excl = state.decks[deckName].excluded;
+  return excl.some(e => e.value === card.value && e.isCrit === card.isCrit);
+}
+
+/* ── State ──────────────────────────────────────────────────── */
+const state = {
+  decks: {},
+  // { [deckName]: { available: Card[], discard: Card[], excluded: ExclType[] } }
+  // ExclType: { value, isCrit }
+  currentResults: [],   // cards shown in the current results panel
+  history: [],
+  round: 0,
+};
+
 function initDecks() {
   DECK_NAMES.forEach(name => {
-    state.decks[name] = { available: buildDeck(name), discard: [] };
+    const prev = state.decks[name];
+    state.decks[name] = {
+      available: buildDeck(name),
+      discard:   [],
+      excluded:  prev ? prev.excluded : [],  // keep exclusions across reset
+    };
   });
 }
 
+/* ── Draw ───────────────────────────────────────────────────── */
 /**
- * Draw `count` cards from a deck.
- * When the available pile runs out mid-draw, the existing discard
- * (cards drawn in previous rounds) is reshuffled back in.
- * Cards drawn in the current call are never returned mid-draw.
- *
- * Returns { cards: Card[], reshuffled: boolean }
+ * Draw `count` cards from a named deck (respects exclusions).
+ * When available runs out, old discard (minus excluded) is reshuffled back.
+ * Returns { cards, reshuffled }
  */
 function drawFromDeck(deckName, count) {
   const deck = state.decks[deckName];
@@ -102,28 +127,80 @@ function drawFromDeck(deckName, count) {
 
   while (drawn.length < count) {
     if (deck.available.length === 0) {
-      if (deck.discard.length === 0) {
-        // Nothing left at all — should not happen given MAX_DRAW === DECK_SIZE
-        break;
-      }
-      deck.available = shuffle(deck.discard.slice());
-      deck.discard    = [];
+      const eligible = deck.discard.filter(c => !isExcluded(deckName, c));
+      if (eligible.length === 0) break;   // nothing left to reshuffle
+      deck.available = shuffle(eligible);
+      deck.discard    = deck.discard.filter(c => isExcluded(deckName, c));
       reshuffled      = true;
     }
     drawn.push(deck.available.pop());
   }
 
-  // Move drawn cards to discard (they'll be reshuffled next time the deck empties)
   deck.discard.push(...drawn);
-
   return { cards: drawn, reshuffled };
+}
+
+/**
+ * Redraw a single card at resultIndex.
+ * The original card stays in discard; a replacement is drawn from the same deck.
+ */
+function redrawCard(resultIndex) {
+  const original = state.currentResults[resultIndex];
+  if (!original) return;
+
+  const deckName = original.deck;
+  const { cards, reshuffled } = drawFromDeck(deckName, 1);
+  if (!cards.length) {
+    showToast('No cards available to redraw from ' + DECK_DEFS[deckName].label + ' deck', 'warning');
+    return;
+  }
+
+  const replacement = Object.assign({}, cards[0], { isRedrawn: true });
+  state.currentResults[resultIndex] = replacement;
+
+  if (reshuffled) {
+    showToast(DECK_DEFS[deckName].label + ' deck reshuffled', 'info', 3000);
+  }
+
+  renderResults(state.currentResults, []);
+  renderDeckStatus();
+  saveState();
+}
+
+/* ── Exclusions ─────────────────────────────────────────────── */
+function toggleExclusion(deckName, value, isCrit) {
+  const deck = state.decks[deckName];
+  const idx  = deck.excluded.findIndex(e => e.value === value && e.isCrit === isCrit);
+
+  if (idx === -1) {
+    // Add exclusion — move matching cards out of available and discard
+    deck.excluded.push({ value, isCrit });
+    deck.available = deck.available.filter(c => !(c.value === value && c.isCrit === isCrit));
+    deck.discard   = deck.discard.filter(c => !(c.value === value && c.isCrit === isCrit));
+  } else {
+    // Remove exclusion — put cards back into available (reshuffled in)
+    deck.excluded.splice(idx, 1);
+    const types    = getCardTypes(deckName);
+    const typeDef  = types.find(t => t.value === value && t.isCrit === isCrit);
+    const count    = typeDef ? typeDef.total : 0;
+    const restored = [];
+    for (let i = 0; i < count; i++) {
+      restored.push({ value, isCrit, deck: deckName });
+    }
+    deck.available = shuffle([...deck.available, ...restored]);
+  }
+
+  renderDeckStatus();
+  renderExclusionToggles(deckName);
+  renderTotalBar();
+  saveState();
 }
 
 /* ── Persistence ────────────────────────────────────────────── */
 function saveState() {
   saveData('monster-might', {
-    decks:  state.decks,
-    round:  state.round,
+    decks:   state.decks,
+    round:   state.round,
     history: state.history,
   });
 }
@@ -134,167 +211,218 @@ function loadState() {
     state.decks   = saved.decks;
     state.round   = saved.round   || 0;
     state.history = saved.history || [];
+    // Ensure excluded array exists (backward compat)
+    DECK_NAMES.forEach(n => {
+      if (!state.decks[n].excluded) state.decks[n].excluded = [];
+    });
     return true;
   }
   return false;
 }
 
-/* ── DOM references ─────────────────────────────────────────── */
+/* ── DOM cache ──────────────────────────────────────────────── */
 const dom = {};
 
 function cacheDom() {
-  dom.drawBtn       = document.getElementById('btn-draw');
-  dom.clearBtn      = document.getElementById('btn-clear-inputs');
-  dom.resetBtn      = document.getElementById('btn-reset-decks');
-  dom.totalValue    = document.getElementById('draw-total-value');
-  dom.totalBar      = document.getElementById('draw-limit-bar-fill');
-  dom.resultsArea   = document.getElementById('results-area');
-  dom.historyList   = document.getElementById('history-list');
-  dom.reshuffleRow  = document.getElementById('reshuffle-row');
+  dom.drawBtn      = document.getElementById('btn-draw');
+  dom.clearBtn     = document.getElementById('btn-clear-inputs');
+  dom.resetBtn     = document.getElementById('btn-reset-decks');
+  dom.totalValue   = document.getElementById('draw-total-value');
+  dom.totalBar     = document.getElementById('draw-limit-bar-fill');
+  dom.resultsArea  = document.getElementById('results-area');
+  dom.historyList  = document.getElementById('history-list');
 
   DECK_NAMES.forEach(name => {
     dom[name] = {
-      input:    document.getElementById(`input-${name}`),
-      btnUp:    document.getElementById(`btn-up-${name}`),
-      btnDown:  document.getElementById(`btn-down-${name}`),
-      counter:  document.getElementById(`counter-${name}`),
-      progress: document.getElementById(`progress-${name}`),
-      discard:  document.getElementById(`discard-${name}`),
+      input:    document.getElementById('input-' + name),
+      btnUp:    document.getElementById('btn-up-' + name),
+      btnDown:  document.getElementById('btn-down-' + name),
+      counter:  document.getElementById('counter-' + name),
+      progress: document.getElementById('progress-' + name),
+      discard:  document.getElementById('discard-' + name),
+      exclRow:  document.getElementById('excl-row-' + name),
     };
   });
 }
 
-/* ── Render helpers ─────────────────────────────────────────── */
+/* ── Render ─────────────────────────────────────────────────── */
 function renderDeckStatus() {
   DECK_NAMES.forEach(name => {
-    const deck = state.decks[name];
+    const deck  = state.decks[name];
     const avail = deck.available.length;
+    const excl  = deck.excluded.length > 0;
     const els   = dom[name];
 
-    els.counter.innerHTML =
-      `<span>${avail}</span> / ${DECK_SIZE}`;
+    // Active cards = available + discard (excludes excluded cards)
+    const active = DECK_SIZE - deck.excluded.reduce((sum, e) => {
+      const types = getCardTypes(name);
+      const t = types.find(t => t.value === e.value && t.isCrit === e.isCrit);
+      return sum + (t ? t.total : 0);
+    }, 0);
 
-    const pct = (avail / DECK_SIZE) * 100;
+    els.counter.innerHTML = '<span>' + avail + '</span> / ' + active +
+      (excl ? ' <span style="color:var(--color-red-bright);font-size:9px;" title="Some cards excluded">&#9888;</span>' : '');
+
+    const pct = active > 0 ? (avail / active) * 100 : 0;
     els.progress.style.width = pct + '%';
 
     els.discard.textContent =
-      deck.discard.length > 0
-        ? `${deck.discard.length} in discard`
-        : 'Discard empty';
+      deck.discard.length > 0 ? deck.discard.length + ' in discard' : 'Discard empty';
+
+    // Update input max
+    els.input.max = avail;
+    if ((parseInt(els.input.value, 10) || 0) > avail) {
+      els.input.value = avail;
+    }
+  });
+}
+
+function renderExclusionToggles(deckName) {
+  const container = dom[deckName].exclRow;
+  if (!container) return;
+
+  const deck  = state.decks[deckName];
+  const types = getCardTypes(deckName);
+
+  container.innerHTML = types.map(t => {
+    const key      = typeKey(t.value, t.isCrit);
+    const active   = deck.excluded.some(e => e.value === t.value && e.isCrit === t.isCrit);
+    const label    = t.value === 0 ? '—' : (t.value + (t.isCrit ? '★' : ''));
+    const countLbl = '×' + t.total;
+    return '<button class="excl-toggle' + (active ? ' is-excluded' : '') + '" ' +
+      'data-deck="' + deckName + '" ' +
+      'data-value="' + t.value + '" ' +
+      'data-crit="' + t.isCrit + '" ' +
+      'aria-pressed="' + active + '" ' +
+      'title="' + (active ? 'Re-include' : 'Exclude') + ' ' + label + ' cards from ' + DECK_DEFS[deckName].label + ' deck">' +
+      '<span class="excl-toggle__label">' + label + '</span>' +
+      '<span class="excl-toggle__count">' + countLbl + '</span>' +
+      '</button>';
+  }).join('');
+
+  // Wire buttons
+  container.querySelectorAll('.excl-toggle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const dn   = btn.dataset.deck;
+      const val  = parseInt(btn.dataset.value, 10);
+      const crit = btn.dataset.crit === 'true';
+      toggleExclusion(dn, val, crit);
+    });
   });
 }
 
 function getTotalDraw() {
   return DECK_NAMES.reduce((sum, name) => {
-    const val = parseInt(dom[name].input.value, 10) || 0;
-    return sum + val;
+    return sum + (parseInt(dom[name].input.value, 10) || 0);
   }, 0);
 }
 
 function renderTotalBar() {
-  const total = getTotalDraw();
-  const over  = total > MAX_DRAW;
+  const total    = getTotalDraw();
+  const maxTotal = DECK_NAMES.reduce((s, n) => s + state.decks[n].available.length, 0);
+  const pct      = maxTotal > 0 ? Math.min((total / maxTotal) * 100, 100) : 0;
 
   dom.totalValue.textContent = total;
-  dom.totalValue.classList.toggle('is-over-limit', over);
-
-  const pct = Math.min((total / MAX_DRAW) * 100, 100);
+  dom.totalValue.classList.remove('is-over-limit');
   dom.totalBar.style.width = pct + '%';
-  dom.totalBar.classList.toggle('is-full', over);
+  dom.totalBar.classList.remove('is-full');
 
-  dom.drawBtn.disabled = total === 0 || over;
+  dom.drawBtn.disabled = total === 0;
 }
 
-function cardHTML(card, animDelay) {
-  const deckClass = `result-card--${card.deck}`;
-  const critClass = card.isCrit  ? 'result-card--crit'  : '';
+function cardHTML(card, index, animDelay) {
+  const deckClass  = 'result-card--' + card.deck;
+  const critClass  = card.isCrit    ? 'result-card--crit'    : '';
   const blankClass = card.value === 0 ? 'result-card--blank' : '';
-  const style = `animation-delay:${animDelay}ms`;
+  const redrawClass = card.isRedrawn ? 'result-card--redrawn' : '';
+  const style = 'animation-delay:' + animDelay + 'ms';
 
   const inner = card.value === 0
-    ? `<span class="result-card__blank-icon" aria-hidden="true">—</span>
-       <span class="result-card__deck-label">${DECK_DEFS[card.deck].label}</span>`
-    : `<span class="result-card__deck-label">${DECK_DEFS[card.deck].label}</span>
-       <span class="result-card__value">${card.value}</span>
-       ${card.isCrit ? '<span class="result-card__crit-badge">Crit</span>' : ''}`;
+    ? '<span class="result-card__blank-icon" aria-hidden="true">\u2014</span>' +
+      '<span class="result-card__deck-label">' + DECK_DEFS[card.deck].label + '</span>'
+    : '<span class="result-card__deck-label">' + DECK_DEFS[card.deck].label + '</span>' +
+      '<span class="result-card__value">' + card.value + '</span>' +
+      (card.isCrit ? '<span class="result-card__crit-badge">Crit</span>' : '');
 
-  const ariaLabel = card.value === 0
-    ? `${DECK_DEFS[card.deck].label} deck — blank`
-    : `${DECK_DEFS[card.deck].label} deck — ${card.value}${card.isCrit ? ' critical' : ''}`;
+  const redrawBtn =
+    '<button class="result-card__redraw" data-index="' + index + '" ' +
+    'aria-label="Redraw this card" title="Redraw">\u21BA</button>';
 
-  return `<div class="result-card ${deckClass} ${critClass} ${blankClass}"
-               style="${style}" aria-label="${ariaLabel}" role="img">${inner}</div>`;
+  const redrawBadge = card.isRedrawn
+    ? '<span class="result-card__redrawn-badge" title="Redrawn">\u21BA</span>'
+    : '';
+
+  return '<div class="result-card ' + deckClass + ' ' + critClass + ' ' + blankClass + ' ' + redrawClass + '" ' +
+    'style="' + style + '">' +
+    redrawBadge +
+    inner +
+    redrawBtn +
+    '</div>';
 }
 
 function chipHTML(card) {
-  const critMark = card.isCrit ? ' ★' : '';
-  const label    = card.value === 0 ? '—' : card.value;
-  return `<span class="history-chip history-chip--${card.deck}${card.isCrit ? ' history-chip--crit' : ''}"
-               title="${DECK_DEFS[card.deck].label}">${label}${critMark}</span>`;
+  const label = card.value === 0 ? '\u2014' : card.value;
+  const crit  = card.isCrit ? ' \u2605' : '';
+  const redr  = card.isRedrawn ? ' \u21BA' : '';
+  return '<span class="history-chip history-chip--' + card.deck + (card.isCrit ? ' history-chip--crit' : '') + '" ' +
+    'title="' + DECK_DEFS[card.deck].label + '">' + label + crit + redr + '</span>';
 }
 
-function renderResults(allDrawn, reshuffles) {
-  if (allDrawn.length === 0) {
-    dom.resultsArea.innerHTML = `
-      <div class="results-area__empty">
-        <div class="results-area__empty-icon" aria-hidden="true">🎴</div>
-        <p class="results-area__empty-text">Draw cards to see results</p>
-      </div>`;
+function renderResults(cards, reshuffles) {
+  state.currentResults = cards;
+
+  if (!cards || cards.length === 0) {
+    dom.resultsArea.innerHTML =
+      '<div class="results-area__empty">' +
+      '<div class="results-area__empty-icon" aria-hidden="true">\uD83C\uDFC4</div>' +
+      '<p class="results-area__empty-text">Draw cards to see results</p>' +
+      '</div>';
     return;
   }
 
-  const totalDmg  = allDrawn.reduce((s, c) => s + c.value, 0);
-  const crits     = allDrawn.filter(c => c.isCrit).length;
-  const blanks    = allDrawn.filter(c => c.value === 0).length;
+  const totalDmg = cards.reduce((s, c) => s + c.value, 0);
+  const crits    = cards.filter(c => c.isCrit).length;
+  const blanks   = cards.filter(c => c.value === 0).length;
 
   const reshuffleHTML = reshuffles.length > 0
-    ? `<div id="reshuffle-row" style="margin-bottom:var(--space-3);">
-        ${reshuffles.map(d =>
-          `<span class="reshuffle-notice">↺ ${DECK_DEFS[d].label} deck reshuffled</span>`
-        ).join(' ')}
-       </div>`
+    ? '<div style="margin-bottom:var(--space-3);">' +
+      reshuffles.map(d =>
+        '<span class="reshuffle-notice">\u21BA ' + DECK_DEFS[d].label + ' deck reshuffled</span>'
+      ).join(' ') + '</div>'
     : '';
 
-  const cardsHTML = allDrawn
-    .map((c, i) => cardHTML(c, i * 40))
-    .join('');
+  const cardsHTML = cards.map((c, i) => cardHTML(c, i, i * 40)).join('');
 
-  dom.resultsArea.innerHTML = `
-    ${reshuffleHTML}
-    <div class="results-header">
-      <span class="results-title">Round ${state.round} — ${allDrawn.length} card${allDrawn.length !== 1 ? 's' : ''} drawn</span>
-      <div class="results-summary">
-        <div class="results-stat">
-          <span class="results-stat__value">${totalDmg}</span>
-          <span class="results-stat__label">Total</span>
-        </div>
-        <div class="results-stat">
-          <span class="results-stat__value${crits ? ' results-stat__value--crit' : ''}">${crits}</span>
-          <span class="results-stat__label">Crits</span>
-        </div>
-        <div class="results-stat">
-          <span class="results-stat__value">${blanks}</span>
-          <span class="results-stat__label">Blanks</span>
-        </div>
-      </div>
-    </div>
-    <div class="cards-grid" role="list">${cardsHTML}</div>`;
+  dom.resultsArea.innerHTML =
+    reshuffleHTML +
+    '<div class="results-header">' +
+    '<span class="results-title">Round ' + state.round + ' \u2014 ' + cards.length + ' card' + (cards.length !== 1 ? 's' : '') + ' drawn</span>' +
+    '<div class="results-summary">' +
+    '<div class="results-stat"><span class="results-stat__value">' + totalDmg + '</span><span class="results-stat__label">Total</span></div>' +
+    '<div class="results-stat"><span class="results-stat__value' + (crits ? ' results-stat__value--crit' : '') + '">' + crits + '</span><span class="results-stat__label">Crits</span></div>' +
+    '<div class="results-stat"><span class="results-stat__value">' + blanks + '</span><span class="results-stat__label">Blanks</span></div>' +
+    '</div></div>' +
+    '<div class="cards-grid" role="list">' + cardsHTML + '</div>';
+
+  // Wire redraw buttons
+  dom.resultsArea.querySelectorAll('.result-card__redraw').forEach(btn => {
+    btn.addEventListener('click', () => redrawCard(parseInt(btn.dataset.index, 10)));
+  });
 }
 
 function renderHistory() {
   if (state.history.length === 0) {
     dom.historyList.innerHTML =
-      `<p style="font-size:var(--text-xs);color:var(--color-text-muted);padding:var(--space-3);">No draws yet.</p>`;
+      '<p style="font-size:var(--text-xs);color:var(--color-text-muted);padding:var(--space-3);">No draws yet.</p>';
     return;
   }
-
   dom.historyList.innerHTML = state.history.map(entry => {
     const chips = entry.cards.map(chipHTML).join('');
-    return `<div class="history-entry">
-      <span class="history-entry__round">Rnd ${entry.round}</span>
-      <div class="history-entry__cards">${chips}</div>
-      <span class="history-entry__total">Σ ${entry.total}</span>
-    </div>`;
+    return '<div class="history-entry">' +
+      '<span class="history-entry__round">Rnd ' + entry.round + '</span>' +
+      '<div class="history-entry__cards">' + chips + '</div>' +
+      '<span class="history-entry__total">\u03A3 ' + entry.total + '</span>' +
+      '</div>';
   }).join('');
 }
 
@@ -309,56 +437,52 @@ function handleDraw() {
     totalCount += n;
   });
 
-  if (totalCount === 0 || totalCount > MAX_DRAW) return;
+  if (totalCount === 0) return;
 
   state.round++;
   const allDrawn   = [];
   const reshuffles = [];
 
-  Object.entries(requests).forEach(([name, count]) => {
+  Object.entries(requests).forEach(function(entry) {
+    var name  = entry[0];
+    var count = entry[1];
     const { cards, reshuffled } = drawFromDeck(name, count);
-    allDrawn.push(...cards);
+    allDrawn.push.apply(allDrawn, cards);
     if (reshuffled) reshuffles.push(name);
   });
 
   const totalDmg = allDrawn.reduce((s, c) => s + c.value, 0);
-
-  state.history.push({
-    round: state.round,
-    cards: allDrawn,
-    total: totalDmg,
-  });
+  state.history.push({ round: state.round, cards: allDrawn.slice(), total: totalDmg });
 
   renderResults(allDrawn, reshuffles);
   renderDeckStatus();
   renderHistory();
 
-  // Clear inputs after draw
   DECK_NAMES.forEach(name => { dom[name].input.value = 0; });
   renderTotalBar();
 
-  if (reshuffles.length > 0) {
-    reshuffles.forEach(d =>
-      showToast(`${DECK_DEFS[d].label} deck reshuffled`, 'info', 3000)
-    );
-  }
+  reshuffles.forEach(d =>
+    showToast(DECK_DEFS[d].label + ' deck reshuffled', 'info', 3000)
+  );
 
   saveState();
 }
 
 function handleReset() {
-  if (!confirm('Reset all decks to their full 18 cards? This will clear draw history.')) return;
+  if (!confirm('Reset all decks to their full card count? Draw history will be cleared.\n\nNote: card exclusions from character abilities will be kept.')) return;
   state.round   = 0;
   state.history = [];
+  state.currentResults = [];
   initDecks();
+
+  DECK_NAMES.forEach(name => {
+    dom[name].input.value = 0;
+    renderExclusionToggles(name);
+  });
+
   renderDeckStatus();
   renderHistory();
-  dom.resultsArea.innerHTML = `
-    <div class="results-area__empty">
-      <div class="results-area__empty-icon" aria-hidden="true">🎴</div>
-      <p class="results-area__empty-text">Draw cards to see results</p>
-    </div>`;
-  DECK_NAMES.forEach(name => { dom[name].input.value = 0; });
+  renderResults([], []);
   renderTotalBar();
   saveState();
   showToast('All decks reset', 'success');
@@ -370,15 +494,14 @@ function handleClearInputs() {
 }
 
 function clampInput(name) {
-  const deck = state.decks[name];
-  const max  = deck.available.length;
-  let val    = parseInt(dom[name].input.value, 10) || 0;
+  const max = state.decks[name].available.length;
+  let   val = parseInt(dom[name].input.value, 10) || 0;
   val = Math.max(0, Math.min(val, max));
   dom[name].input.value = val;
   renderTotalBar();
 }
 
-/* ── Event wiring ───────────────────────────────────────────── */
+/* ── Events ─────────────────────────────────────────────────── */
 function bindEvents() {
   dom.drawBtn.addEventListener('click', handleDraw);
   dom.resetBtn.addEventListener('click', handleReset);
@@ -387,43 +510,38 @@ function bindEvents() {
   DECK_NAMES.forEach(name => {
     const els = dom[name];
 
-    els.input.addEventListener('input', () => clampInput(name));
+    els.input.addEventListener('input',  () => clampInput(name));
     els.input.addEventListener('change', () => clampInput(name));
 
-    // Keyboard: up/down arrows on the input
-    els.input.addEventListener('keydown', (e) => {
-      const deck = state.decks[name];
-      const max  = deck.available.length;
+    els.input.addEventListener('keydown', function(e) {
+      const max = state.decks[name].available.length;
       if (e.key === 'ArrowUp') {
         e.preventDefault();
-        els.input.value = Math.min((parseInt(els.input.value,10)||0) + 1, max);
+        els.input.value = Math.min((parseInt(els.input.value, 10) || 0) + 1, max);
         renderTotalBar();
       }
       if (e.key === 'ArrowDown') {
         e.preventDefault();
-        els.input.value = Math.max((parseInt(els.input.value,10)||0) - 1, 0);
+        els.input.value = Math.max((parseInt(els.input.value, 10) || 0) - 1, 0);
         renderTotalBar();
       }
     });
 
-    els.btnUp.addEventListener('click', () => {
-      const deck = state.decks[name];
-      const max  = deck.available.length;
-      const cur  = parseInt(els.input.value, 10) || 0;
-      els.input.value = Math.min(cur + 1, max);
+    els.btnUp.addEventListener('click', function() {
+      const max = state.decks[name].available.length;
+      els.input.value = Math.min((parseInt(els.input.value, 10) || 0) + 1, max);
       renderTotalBar();
     });
 
-    els.btnDown.addEventListener('click', () => {
-      const cur = parseInt(els.input.value, 10) || 0;
-      els.input.value = Math.max(cur - 1, 0);
+    els.btnDown.addEventListener('click', function() {
+      els.input.value = Math.max((parseInt(els.input.value, 10) || 0) - 1, 0);
       renderTotalBar();
     });
   });
 }
 
 /* ── Boot ───────────────────────────────────────────────────── */
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', function() {
   cacheDom();
 
   const restored = loadState();
@@ -434,7 +552,7 @@ document.addEventListener('DOMContentLoaded', () => {
   renderHistory();
   renderTotalBar();
 
-  if (restored) {
-    showToast('Session restored', 'info', 2500);
-  }
+  DECK_NAMES.forEach(name => renderExclusionToggles(name));
+
+  if (restored) showToast('Session restored', 'info', 2500);
 });

@@ -106,6 +106,12 @@
           Discard empty
         </div>
 
+        <div>
+          <p class="deck-panel__excl-label">Exclude cards</p>
+          <div class="excl-row" id="excl-row-white" role="group"
+               aria-label="Exclude card types from white deck"></div>
+        </div>
+
         <!-- Deck reference: blank, blank, 1, 1, 2, 2★ -->
         <div style="font-family:var(--font-display);font-size:10px;letter-spacing:0.08em;
                     color:var(--color-text-muted);text-transform:uppercase;margin-top:auto;">
@@ -141,6 +147,12 @@
         <div class="deck-panel__discard" id="discard-yellow" aria-live="polite">
           <span class="deck-panel__discard-dot" aria-hidden="true"></span>
           Discard empty
+        </div>
+
+        <div>
+          <p class="deck-panel__excl-label">Exclude cards</p>
+          <div class="excl-row" id="excl-row-yellow" role="group"
+               aria-label="Exclude card types from yellow deck"></div>
         </div>
 
         <div style="font-family:var(--font-display);font-size:10px;letter-spacing:0.08em;
@@ -179,6 +191,12 @@
           Discard empty
         </div>
 
+        <div>
+          <p class="deck-panel__excl-label">Exclude cards</p>
+          <div class="excl-row" id="excl-row-red" role="group"
+               aria-label="Exclude card types from red deck"></div>
+        </div>
+
         <div style="font-family:var(--font-display);font-size:10px;letter-spacing:0.08em;
                     color:var(--color-text-muted);text-transform:uppercase;margin-top:auto;">
           —&nbsp;&nbsp;—&nbsp;&nbsp;2&nbsp;&nbsp;3&nbsp;&nbsp;3&nbsp;&nbsp;<span style="color:#c0392b;">4★</span>
@@ -215,6 +233,12 @@
           Discard empty
         </div>
 
+        <div>
+          <p class="deck-panel__excl-label">Exclude cards</p>
+          <div class="excl-row" id="excl-row-black" role="group"
+               aria-label="Exclude card types from black deck"></div>
+        </div>
+
         <div style="font-family:var(--font-display);font-size:10px;letter-spacing:0.08em;
                     color:var(--color-text-muted);text-transform:uppercase;margin-top:auto;">
           —&nbsp;&nbsp;—&nbsp;&nbsp;3&nbsp;&nbsp;4&nbsp;&nbsp;4&nbsp;&nbsp;<span style="color:#9080b0;">5★</span>
@@ -229,7 +253,7 @@
         <span class="draw-total-label">Cards to draw</span>
         <span class="draw-total-value" id="draw-total-value"
               aria-live="polite" aria-atomic="true">0</span>
-        <span class="draw-total-max">/ 18</span>
+        <span class="draw-total-max">cards selected</span>
         <div class="draw-limit-bar" aria-hidden="true">
           <div class="draw-limit-bar__fill" id="draw-limit-bar-fill" style="width:0%;"></div>
         </div>
