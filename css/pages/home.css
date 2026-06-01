@@ -1,0 +1,152 @@
+/* ============================================================
+   OATHSWORN — Home page specific styles
+   ============================================================ */
+
+/* ── Lore quote banner ──────────────────────────────────────── */
+.lore-banner {
+  background: linear-gradient(135deg, var(--color-bg-sunken), var(--color-red-dim));
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+  padding: var(--space-6) 0;
+}
+
+.lore-banner__quote {
+  text-align: center;
+  font-style: italic;
+  font-size: var(--text-lg);
+  color: var(--color-text-secondary);
+  max-width: 60ch;
+  margin-inline: auto;
+  position: relative;
+  padding-inline: var(--space-10);
+}
+
+.lore-banner__quote::before,
+.lore-banner__quote::after {
+  content: '"';
+  font-family: var(--font-display);
+  font-size: var(--text-5xl);
+  color: var(--color-gold-muted);
+  position: absolute;
+  line-height: 1;
+  opacity: 0.6;
+}
+
+.lore-banner__quote::before {
+  top: -0.2em;
+  left: 0;
+}
+
+.lore-banner__quote::after {
+  bottom: -0.4em;
+  right: 0;
+  content: '"';
+}
+
+.lore-banner__attribution {
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-widest);
+  color: var(--color-gold-muted);
+  text-transform: uppercase;
+  margin-top: var(--space-3);
+}
+
+/* ── About section ──────────────────────────────────────────── */
+.about-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-16);
+  align-items: center;
+}
+
+.about-text p + p {
+  margin-top: var(--space-4);
+}
+
+.about-text .lead {
+  font-size: var(--text-lg);
+  color: var(--color-text-primary);
+  line-height: var(--leading-relaxed);
+}
+
+.about-features {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+/* ── Apps section ───────────────────────────────────────────── */
+.apps-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--space-6);
+}
+
+/* ── Stats banner ───────────────────────────────────────────── */
+.stats-banner {
+  background-color: var(--color-bg-sunken);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--color-border-gold);
+  padding: var(--space-8);
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-6);
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.stats-banner::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 60% 80% at 50% 0%, rgba(201,148,10,0.05) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.stats-banner__item {
+  position: relative;
+}
+
+.stats-banner__item + .stats-banner__item::before {
+  content: '';
+  position: absolute;
+  left: calc(-1 * var(--space-3));
+  top: 20%;
+  height: 60%;
+  width: 1px;
+  background: var(--color-border);
+}
+
+.stats-banner__value {
+  font-family: var(--font-display);
+  font-size: var(--text-4xl);
+  font-weight: var(--font-bold);
+  color: var(--color-gold);
+  line-height: 1;
+  text-shadow: 0 0 20px rgba(201,148,10,0.3);
+}
+
+.stats-banner__label {
+  font-family: var(--font-display);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-widest);
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  margin-top: var(--space-2);
+}
+
+
+
+/* ── Responsive ─────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .about-grid { grid-template-columns: 1fr; gap: var(--space-10); }
+  .stats-banner { grid-template-columns: repeat(2, 1fr); }
+  .stats-banner__item + .stats-banner__item::before { display: none; }
+}
+
+@media (max-width: 480px) {
+  .stats-banner { grid-template-columns: 1fr; }
+}
