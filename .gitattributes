@@ -1,0 +1,21 @@
+# Force UTF-8 for all text files and normalise line endings
+* text=auto encoding=utf-8
+
+# Explicitly mark file types
+*.html  text encoding=utf-8
+*.css   text encoding=utf-8
+*.js    text encoding=utf-8
+*.svg   text encoding=utf-8
+*.md    text encoding=utf-8
+*.json  text encoding=utf-8
+
+# Binary — do not touch
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.woff  binary
+*.woff2 binary
+*.ttf   binary
+*.eot   binary
