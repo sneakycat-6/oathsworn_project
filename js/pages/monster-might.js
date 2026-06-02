@@ -140,7 +140,7 @@ function drawFromDeck(deckName, count) {
  */
 function redrawCard(resultIndex) {
   const original = state.currentResults[resultIndex];
-  if (!original) return;
+  if (!original || original.isDiscarded) return;
 
   const deckName = original.deck;
   const { cards, reshuffled } = drawFromDeck(deckName, 1);
@@ -149,7 +149,12 @@ function redrawCard(resultIndex) {
     return;
   }
 
-  const replacement = Object.assign({}, cards[0], { isRedrawn: true });
+  // Store what the card was before redraw so it can be displayed
+  const replacement = Object.assign({}, cards[0], {
+    isRedrawn: true,
+    redrawFrom: { value: original.value, isCrit: original.isCrit, deck: original.deck,
+                  wasRedrawn: original.isRedrawn, redrawFrom: original.redrawFrom || null },
+  });
   state.currentResults[resultIndex] = replacement;
 
   if (reshuffled) {
@@ -264,37 +269,45 @@ function renderTotalBar() {
 }
 
 function cardHTML(card, index, animDelay) {
-  const deckClass  = 'result-card--' + card.deck;
-  const critClass  = card.isCrit    ? 'result-card--crit'    : '';
-  const blankClass = card.value === 0 ? 'result-card--blank' : '';
-  const redrawClass = card.isRedrawn ? 'result-card--redrawn' : '';
+  const deckClass     = 'result-card--' + card.deck;
+  const critClass     = card.isCrit      ? 'result-card--crit'      : '';
+  const blankClass    = card.value === 0  ? 'result-card--blank'    : '';
+  const redrawClass   = card.isRedrawn   ? 'result-card--redrawn'   : '';
+  const discardClass  = card.isDiscarded ? 'result-card--discarded' : '';
   const style = 'animation-delay:' + animDelay + 'ms';
 
-  const inner = card.value === 0
-    ? '<span class="result-card__blank-icon" aria-hidden="true">\u2014</span>' +
-      '<span class="result-card__deck-label">' + DECK_DEFS[card.deck].label + '</span>'
-    : '<span class="result-card__deck-label">' + DECK_DEFS[card.deck].label + '</span>' +
-      '<span class="result-card__value">' + card.value + '</span>' +
-      (card.isCrit ? '<span class="result-card__crit-badge">Crit</span>' : '');
-
-  const discardedClass = card.isDiscarded ? 'result-card--discarded' : '';
-
-  const actionBtns =
-    '<div class="result-card__actions">' +
-    '<button class="result-card__btn result-card__btn--discard' + (card.isDiscarded ? ' is-active' : '') + '" data-action="discard" data-index="' + index + '" ' +
-    'aria-pressed="' + !!card.isDiscarded + '" aria-label="' + (card.isDiscarded ? 'Restore' : 'Discard') + ' this card" title="' + (card.isDiscarded ? 'Restore' : 'Discard') + '">' +
-    (card.isDiscarded ? '\u21A9' : '\u2715') + '</button>' +
-    '<button class="result-card__btn result-card__btn--redraw" data-action="redraw" data-index="' + index + '" ' +
-    'aria-label="Redraw this card" title="Redraw" ' + (card.isDiscarded ? 'disabled' : '') + '>\u21BA</button>' +
-    '</div>';
-
-  const redrawBadge = card.isRedrawn
-    ? '<span class="result-card__redrawn-badge" title="Redrawn">\u21BA</span>'
+  // Redraw origin label (shown on the card face)
+  const redrawOriginHTML = card.redrawFrom
+    ? ('<span class="result-card__origin" title="Redrawn from ' +
+       (card.redrawFrom.value === 0 ? 'blank' : card.redrawFrom.value + (card.redrawFrom.isCrit ? '★' : '')) +
+       '">↺ ' +
+       (card.redrawFrom.value === 0 ? '—' : card.redrawFrom.value + (card.redrawFrom.isCrit ? '★' : '')) +
+       '</span>')
     : '';
 
-  return '<div class="result-card ' + deckClass + ' ' + critClass + ' ' + blankClass + ' ' + redrawClass + ' ' + discardedClass + '" ' +
+  const inner = card.value === 0
+    ? '<span class="result-card__deck-label">' + DECK_DEFS[card.deck].label + '</span>' +
+      '<span class="result-card__blank-icon" aria-hidden="true">—</span>' +
+      redrawOriginHTML
+    : '<span class="result-card__deck-label">' + DECK_DEFS[card.deck].label + '</span>' +
+      '<span class="result-card__value">' + card.value + '</span>' +
+      (card.isCrit ? '<span class="result-card__crit-badge">Crit</span>' : '') +
+      redrawOriginHTML;
+
+  const discardLabel = card.isDiscarded ? 'Restore' : 'Discard';
+  const actionBtns =
+    '<div class="result-card__actions">' +
+    '<button class="result-card__btn result-card__btn--discard' + (card.isDiscarded ? ' is-active' : '') + '" ' +
+    'data-action="discard" data-index="' + index + '" ' +
+    'aria-pressed="' + !!card.isDiscarded + '" ' +
+    'title="' + discardLabel + '">' +
+    (card.isDiscarded ? '↩' : '✕') + '</button>' +
+    '<button class="result-card__btn result-card__btn--redraw" data-action="redraw" data-index="' + index + '" ' +
+    'title="Redraw"' + (card.isDiscarded ? ' disabled' : '') + '>↺</button>' +
+    '</div>';
+
+  return '<div class="result-card ' + deckClass + ' ' + critClass + ' ' + blankClass + ' ' + redrawClass + ' ' + discardClass + '" ' +
     'style="' + style + '">' +
-    redrawBadge +
     inner +
     actionBtns +
     '</div>';
