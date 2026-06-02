@@ -3,15 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="App One — Oathsworn Companion" />
-  <title>App One — Oathsworn Companion</title>
+  <meta name="description" content="Monster Might Decks — Oathsworn Companion" />
+  <title>Monster Might — Oathsworn Companion</title>
 
   <link rel="stylesheet" href="../css/variables.css" />
   <link rel="stylesheet" href="../css/base.css" />
   <link rel="stylesheet" href="../css/layout.css" />
   <link rel="stylesheet" href="../css/components.css" />
   <link rel="stylesheet" href="../css/theme.css" />
-  <link rel="stylesheet" href="../css/pages/app-page.css" />
+  <link rel="stylesheet" href="../css/pages/monster-might.css" />
 
   <link rel="icon" type="image/svg+xml" href="../assets/icons/favicon.svg" />
 </head>
@@ -34,9 +34,9 @@
       </a>
 
       <ul class="nav__menu" role="list">
-        <li><a href="../index.html"    class="nav__link">Home</a></li>
-        <li><a href="app-one.html"     class="nav__link">App One</a></li>
-        <li><a href="app-two.html"     class="nav__link">App Two</a></li>
+        <li><a href="../index.html"   class="nav__link">Home</a></li>
+        <li><a href="app-one.html"    class="nav__link">Monster Might</a></li>
+        <li><a href="app-two.html"    class="nav__link">App Two</a></li>
         <!-- Add future pages here -->
       </ul>
 
@@ -61,261 +61,224 @@
       <nav class="page-hero__breadcrumb" aria-label="Breadcrumb">
         <a href="../index.html">Home</a>
         <span aria-hidden="true">›</span>
-        <span>App One</span>
+        <span>Monster Might</span>
       </nav>
-
-      <div class="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 class="page-hero__title">App One</h1>
-          <p class="page-hero__desc">
-            Describe what this app does once you've decided — replace this line.
-          </p>
-        </div>
-        <div class="flex gap-4 items-center" style="padding-top: 0.5rem;">
-          <button class="btn btn--primary" id="btn-add-entry">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-              <path d="M8 2v12M2 8h12" stroke="currentColor" stroke-width="1.8"
-                    stroke-linecap="round"/>
-            </svg>
-            Add Entry
-          </button>
-        </div>
-      </div>
+      <h1 class="page-hero__title">Monster Might Decks</h1>
+      <p class="page-hero__desc">
+        Draw attack cards from the four might decks during an encounter.
+      </p>
     </div>
   </section>
 
   <!-- ── App body ──────────────────────────────────────────── -->
   <div class="container" style="padding-bottom: var(--space-16);">
-    <div class="app-layout">
 
-      <!-- Sidebar -->
-      <aside class="app-sidebar" aria-label="Entries list">
-        <div class="app-sidebar__header">
-          <span class="app-sidebar__title">Entries</span>
-          <button class="btn btn--ghost btn--sm btn--icon" aria-label="Add entry" id="btn-sidebar-add">
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-              <path d="M8 2v12M2 8h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-            </svg>
-          </button>
+    <!-- ── Deck picker ──────────────────────────────────────── -->
+    <div class="deck-picker" role="group" aria-label="Select cards to draw per deck">
+
+      <!-- WHITE deck -->
+      <div class="deck-panel deck-panel--white">
+        <div class="deck-panel__header">
+          <span class="deck-panel__name">White</span>
+          <span class="deck-panel__counter" id="counter-white">
+            <span>18</span> / 18
+          </span>
         </div>
 
-        <div class="app-sidebar__body" id="sidebar-list" role="list">
-          <!-- Example items — replace with dynamic content -->
-          <div class="app-sidebar__item is-selected" role="listitem" tabindex="0">
-            <div class="app-sidebar__item-icon" aria-hidden="true">⚔</div>
-            <span class="app-sidebar__item-label">Entry One</span>
-          </div>
-          <div class="app-sidebar__item" role="listitem" tabindex="0">
-            <div class="app-sidebar__item-icon" aria-hidden="true">📜</div>
-            <span class="app-sidebar__item-label">Entry Two</span>
-          </div>
-          <div class="app-sidebar__item" role="listitem" tabindex="0">
-            <div class="app-sidebar__item-icon" aria-hidden="true">🗡</div>
-            <span class="app-sidebar__item-label">Entry Three</span>
-          </div>
+        <div class="deck-panel__progress" aria-hidden="true">
+          <div class="deck-panel__progress-fill" id="progress-white" style="width:100%;"></div>
         </div>
-      </aside>
 
-      <!-- Main content -->
-      <div class="app-content" id="app-content">
-
-        <!-- Toolbar -->
-        <div class="app-toolbar">
-          <div class="app-toolbar__left">
-            <span class="badge badge--gold">App One</span>
-            <span id="entry-count" style="font-size:var(--text-sm); color:var(--color-text-muted);">
-              3 entries
-            </span>
-          </div>
-          <div class="app-toolbar__right">
-            <input type="search" class="form-input" style="width:220px;"
-                   placeholder="Search…" aria-label="Search entries" id="search-input" />
+        <div class="deck-panel__input-row">
+          <label class="deck-panel__input-label" for="input-white">Draw</label>
+          <input class="deck-count-input" type="number"
+                 id="input-white" name="white"
+                 min="0" max="18" value="0"
+                 aria-label="Number of White deck cards to draw" />
+          <div class="deck-stepper">
+            <button class="deck-stepper__btn" id="btn-up-white" aria-label="Increase White draw count">▲</button>
+            <button class="deck-stepper__btn" id="btn-down-white" aria-label="Decrease White draw count">▼</button>
           </div>
         </div>
 
-        <!-- Detail panel -->
-        <div class="app-panel">
-          <div class="app-panel__header">
-            <h2 class="app-panel__title">Entry One</h2>
-            <div class="flex gap-4">
-              <button class="btn btn--ghost btn--sm">Edit</button>
-              <button class="btn btn--danger btn--sm">Delete</button>
-            </div>
+        <div class="deck-panel__discard" id="discard-white" aria-live="polite">
+          <span class="deck-panel__discard-dot" aria-hidden="true"></span>
+          Discard empty
+        </div>
+
+
+        <!-- Deck reference: blank, blank, 1, 1, 2, 2★ -->
+        <div style="font-family:var(--font-display);font-size:10px;letter-spacing:0.08em;
+                    color:var(--color-text-muted);text-transform:uppercase;margin-top:auto;">
+          —&nbsp;&nbsp;—&nbsp;&nbsp;1&nbsp;&nbsp;1&nbsp;&nbsp;2&nbsp;&nbsp;<span style="color:#c8bfaa;">2★</span>
+        </div>
+      </div>
+
+      <!-- YELLOW deck -->
+      <div class="deck-panel deck-panel--yellow">
+        <div class="deck-panel__header">
+          <span class="deck-panel__name">Yellow</span>
+          <span class="deck-panel__counter" id="counter-yellow">
+            <span>18</span> / 18
+          </span>
+        </div>
+
+        <div class="deck-panel__progress" aria-hidden="true">
+          <div class="deck-panel__progress-fill" id="progress-yellow" style="width:100%;"></div>
+        </div>
+
+        <div class="deck-panel__input-row">
+          <label class="deck-panel__input-label" for="input-yellow">Draw</label>
+          <input class="deck-count-input" type="number"
+                 id="input-yellow" name="yellow"
+                 min="0" max="18" value="0"
+                 aria-label="Number of Yellow deck cards to draw" />
+          <div class="deck-stepper">
+            <button class="deck-stepper__btn" id="btn-up-yellow" aria-label="Increase Yellow draw count">▲</button>
+            <button class="deck-stepper__btn" id="btn-down-yellow" aria-label="Decrease Yellow draw count">▼</button>
           </div>
+        </div>
 
-          <div class="app-panel__body">
+        <div class="deck-panel__discard" id="discard-yellow" aria-live="polite">
+          <span class="deck-panel__discard-dot" aria-hidden="true"></span>
+          Discard empty
+        </div>
 
-            <!-- Tabs (optional — remove if not needed) -->
-            <div data-tabs>
-              <div class="tabs" role="tablist">
-                <button class="tab-btn is-active" role="tab" data-tab="tab-overview"
-                        aria-selected="true">Overview</button>
-                <button class="tab-btn" role="tab" data-tab="tab-details"
-                        aria-selected="false">Details</button>
-                <button class="tab-btn" role="tab" data-tab="tab-notes"
-                        aria-selected="false">Notes</button>
-              </div>
 
-              <!-- Tab: Overview -->
-              <div class="tab-panel is-active" id="tab-overview" role="tabpanel">
-                <div class="detail-section">
-                  <h3 class="detail-section__title">Key Values</h3>
-                  <div class="kv-grid">
-                    <div class="kv-item">
-                      <p class="kv-item__key">Attribute A</p>
-                      <p class="kv-item__value">—</p>
-                    </div>
-                    <div class="kv-item">
-                      <p class="kv-item__key">Attribute B</p>
-                      <p class="kv-item__value">—</p>
-                    </div>
-                    <div class="kv-item">
-                      <p class="kv-item__key">Attribute C</p>
-                      <p class="kv-item__value">—</p>
-                    </div>
-                    <div class="kv-item">
-                      <p class="kv-item__key">Attribute D</p>
-                      <p class="kv-item__value">—</p>
-                    </div>
-                  </div>
-                </div>
+        <div style="font-family:var(--font-display);font-size:10px;letter-spacing:0.08em;
+                    color:var(--color-text-muted);text-transform:uppercase;margin-top:auto;">
+          —&nbsp;&nbsp;—&nbsp;&nbsp;1&nbsp;&nbsp;2&nbsp;&nbsp;3&nbsp;&nbsp;<span style="color:#c9940a;">3★</span>
+        </div>
+      </div>
 
-                <div class="detail-section">
-                  <h3 class="detail-section__title">Data List</h3>
-                  <div class="data-list" id="data-list">
-                    <div class="data-row">
-                      <span class="data-row__icon" aria-hidden="true">✦</span>
-                      <div class="data-row__main">
-                        <p class="data-row__name">Row Item One</p>
-                        <p class="data-row__sub">Supporting detail goes here</p>
-                      </div>
-                      <div class="data-row__actions">
-                        <button class="btn btn--ghost btn--sm btn--icon" aria-label="Edit">
-                          <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-                            <path d="M11 2l3 3-9 9H2v-3L11 2z" stroke="currentColor"
-                                  stroke-width="1.4" stroke-linejoin="round"/>
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
+      <!-- RED deck -->
+      <div class="deck-panel deck-panel--red">
+        <div class="deck-panel__header">
+          <span class="deck-panel__name">Red</span>
+          <span class="deck-panel__counter" id="counter-red">
+            <span>18</span> / 18
+          </span>
+        </div>
 
-                    <div class="data-row is-highlighted">
-                      <span class="data-row__icon" aria-hidden="true">⚔</span>
-                      <div class="data-row__main">
-                        <p class="data-row__name">Row Item Two (highlighted)</p>
-                        <p class="data-row__sub">Supporting detail goes here</p>
-                      </div>
-                      <div class="data-row__actions">
-                        <button class="btn btn--ghost btn--sm btn--icon" aria-label="Edit">
-                          <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-                            <path d="M11 2l3 3-9 9H2v-3L11 2z" stroke="currentColor"
-                                  stroke-width="1.4" stroke-linejoin="round"/>
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
+        <div class="deck-panel__progress" aria-hidden="true">
+          <div class="deck-panel__progress-fill" id="progress-red" style="width:100%;"></div>
+        </div>
 
-                    <div class="data-row">
-                      <span class="data-row__icon" aria-hidden="true">🛡</span>
-                      <div class="data-row__main">
-                        <p class="data-row__name">Row Item Three</p>
-                        <p class="data-row__sub">Supporting detail goes here</p>
-                      </div>
-                      <div class="data-row__actions">
-                        <button class="btn btn--ghost btn--sm btn--icon" aria-label="Edit">
-                          <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-                            <path d="M11 2l3 3-9 9H2v-3L11 2z" stroke="currentColor"
-                                  stroke-width="1.4" stroke-linejoin="round"/>
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+        <div class="deck-panel__input-row">
+          <label class="deck-panel__input-label" for="input-red">Draw</label>
+          <input class="deck-count-input" type="number"
+                 id="input-red" name="red"
+                 min="0" max="18" value="0"
+                 aria-label="Number of Red deck cards to draw" />
+          <div class="deck-stepper">
+            <button class="deck-stepper__btn" id="btn-up-red" aria-label="Increase Red draw count">▲</button>
+            <button class="deck-stepper__btn" id="btn-down-red" aria-label="Decrease Red draw count">▼</button>
+          </div>
+        </div>
 
-              <!-- Tab: Details -->
-              <div class="tab-panel" id="tab-details" role="tabpanel">
-                <div class="placeholder-block">
-                  <div class="placeholder-block__icon" aria-hidden="true">📋</div>
-                  <h3 class="placeholder-block__title">Details</h3>
-                  <p class="placeholder-block__desc">
-                    Extended information about this entry will appear here.
-                    Implement when ready.
-                  </p>
-                </div>
-              </div>
+        <div class="deck-panel__discard" id="discard-red" aria-live="polite">
+          <span class="deck-panel__discard-dot" aria-hidden="true"></span>
+          Discard empty
+        </div>
 
-              <!-- Tab: Notes -->
-              <div class="tab-panel" id="tab-notes" role="tabpanel">
-                <div class="detail-section">
-                  <h3 class="detail-section__title">Notes</h3>
-                  <div class="form-group">
-                    <textarea class="form-textarea notes-area"
-                              placeholder="Write any notes about this entry…"
-                              rows="6"
-                              aria-label="Entry notes"></textarea>
-                  </div>
-                  <div style="margin-top: var(--space-4); text-align:right;">
-                    <button class="btn btn--secondary btn--sm">Save Notes</button>
-                  </div>
-                </div>
-              </div>
 
-            </div><!-- /data-tabs -->
+        <div style="font-family:var(--font-display);font-size:10px;letter-spacing:0.08em;
+                    color:var(--color-text-muted);text-transform:uppercase;margin-top:auto;">
+          —&nbsp;&nbsp;—&nbsp;&nbsp;2&nbsp;&nbsp;3&nbsp;&nbsp;3&nbsp;&nbsp;<span style="color:#c0392b;">4★</span>
+        </div>
+      </div>
 
-          </div><!-- /app-panel__body -->
-        </div><!-- /app-panel -->
+      <!-- BLACK deck -->
+      <div class="deck-panel deck-panel--black">
+        <div class="deck-panel__header">
+          <span class="deck-panel__name">Black</span>
+          <span class="deck-panel__counter" id="counter-black">
+            <span>18</span> / 18
+          </span>
+        </div>
 
-      </div><!-- /app-content -->
-    </div><!-- /app-layout -->
-  </div>
+        <div class="deck-panel__progress" aria-hidden="true">
+          <div class="deck-panel__progress-fill" id="progress-black" style="width:100%;"></div>
+        </div>
 
-</main>
+        <div class="deck-panel__input-row">
+          <label class="deck-panel__input-label" for="input-black">Draw</label>
+          <input class="deck-count-input" type="number"
+                 id="input-black" name="black"
+                 min="0" max="18" value="0"
+                 aria-label="Number of Black deck cards to draw" />
+          <div class="deck-stepper">
+            <button class="deck-stepper__btn" id="btn-up-black" aria-label="Increase Black draw count">▲</button>
+            <button class="deck-stepper__btn" id="btn-down-black" aria-label="Decrease Black draw count">▼</button>
+          </div>
+        </div>
 
-<!-- ══════════════════════════════════════════════════════════
-     MODAL — Add Entry
-═══════════════════════════════════════════════════════════ -->
-<div class="modal-backdrop" id="modal-add-entry" role="dialog"
-     aria-modal="true" aria-labelledby="modal-add-title" aria-hidden="true">
-  <div class="modal">
-    <div class="modal__header">
-      <h2 class="modal__title" id="modal-add-title">Add New Entry</h2>
-      <button class="modal__close" data-close-modal="modal-add-entry"
-              aria-label="Close modal">✕</button>
+        <div class="deck-panel__discard" id="discard-black" aria-live="polite">
+          <span class="deck-panel__discard-dot" aria-hidden="true"></span>
+          Discard empty
+        </div>
+
+
+        <div style="font-family:var(--font-display);font-size:10px;letter-spacing:0.08em;
+                    color:var(--color-text-muted);text-transform:uppercase;margin-top:auto;">
+          —&nbsp;&nbsp;—&nbsp;&nbsp;3&nbsp;&nbsp;4&nbsp;&nbsp;4&nbsp;&nbsp;<span style="color:#9080b0;">5★</span>
+        </div>
+      </div>
+
+    </div><!-- /deck-picker -->
+
+    <!-- ── Draw controls ──────────────────────────────────── -->
+    <div class="draw-controls">
+      <div class="draw-controls__total">
+        <span class="draw-total-label">Cards to draw</span>
+        <span class="draw-total-value" id="draw-total-value"
+              aria-live="polite" aria-atomic="true">0</span>
+        <span class="draw-total-max">cards selected</span>
+        <div class="draw-limit-bar" aria-hidden="true">
+          <div class="draw-limit-bar__fill" id="draw-limit-bar-fill" style="width:0%;"></div>
+        </div>
+      </div>
+
+      <div class="draw-controls__actions">
+        <button class="btn btn--ghost btn--sm" id="btn-clear-inputs"
+                aria-label="Clear all inputs">Clear</button>
+        <button class="btn btn--ghost btn--sm" id="btn-reset-decks"
+                aria-label="Reset all decks to full">Reset Decks</button>
+        <button class="btn btn--primary btn--lg" id="btn-draw"
+                disabled aria-label="Draw cards">
+          Draw
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="M8 2v9M4 8l4 4 4-4" stroke="currentColor" stroke-width="1.8"
+                  stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
     </div>
 
-    <form id="form-add-entry" novalidate>
-      <div class="form-group" style="margin-bottom: var(--space-4);">
-        <label class="form-label" for="entry-name">Name</label>
-        <input class="form-input" type="text" id="entry-name" name="name"
-               placeholder="Entry name…" required autocomplete="off" />
+    <!-- ── Results ────────────────────────────────────────── -->
+    <div id="results-area" class="results-area" aria-live="polite" aria-atomic="false">
+      <div class="results-area__empty">
+        <div class="results-area__empty-icon" aria-hidden="true">🎴</div>
+        <p class="results-area__empty-text">Draw cards to see results</p>
       </div>
+    </div>
 
-      <div class="form-group" style="margin-bottom: var(--space-4);">
-        <label class="form-label" for="entry-type">Type</label>
-        <select class="form-select" id="entry-type" name="type">
-          <option value="">— Select type —</option>
-          <option value="type-a">Type A</option>
-          <option value="type-b">Type B</option>
-          <option value="type-c">Type C</option>
-        </select>
+    <!-- ── History ────────────────────────────────────────── -->
+    <div class="history-panel">
+      <div class="history-panel__header">
+        <span class="history-panel__title">Draw History</span>
+        <button class="btn btn--ghost btn--sm" id="btn-clear-history"
+                aria-label="Clear history">Clear</button>
       </div>
+      <div class="history-list" id="history-list" role="log" aria-live="polite">
+        <p style="font-size:var(--text-xs);color:var(--color-text-muted);padding:var(--space-3);">
+          No draws yet.
+        </p>
+      </div>
+    </div>
 
-      <div class="form-group" style="margin-bottom: var(--space-6);">
-        <label class="form-label" for="entry-notes">Notes (optional)</label>
-        <textarea class="form-textarea" id="entry-notes" name="notes"
-                  placeholder="Any notes…" rows="3"></textarea>
-      </div>
-
-      <div class="flex justify-end gap-4">
-        <button type="button" class="btn btn--ghost"
-                data-close-modal="modal-add-entry">Cancel</button>
-        <button type="submit" class="btn btn--primary">Add Entry</button>
-      </div>
-    </form>
-  </div>
-</div>
+  </div><!-- /container -->
+</main>
 
 <!-- ══════════════════════════════════════════════════════════
      FOOTER
@@ -332,7 +295,7 @@
       <div>
         <p class="footer__heading">Apps</p>
         <ul class="footer__links" role="list">
-          <li><a href="app-one.html" class="footer__link">App One</a></li>
+          <li><a href="app-one.html" class="footer__link">Monster Might</a></li>
           <li><a href="app-two.html" class="footer__link">App Two</a></li>
         </ul>
       </div>
@@ -346,8 +309,7 @@
     </div>
     <div class="footer__bottom">
       <p class="footer__copy">
-        &copy; <span class="footer-year"></span> Oathsworn Companion.
-        Fan-made project.
+        &copy; <span class="footer-year"></span> Oathsworn Companion. Fan-made project.
       </p>
     </div>
   </div>
@@ -356,15 +318,20 @@
 <!-- Scripts -->
 <script src="../js/utils.js"></script>
 <script src="../js/components/nav.js"></script>
-<script src="../js/pages/app-page.js"></script>
+<script src="../js/pages/monster-might.js"></script>
 <script>
   document.querySelectorAll('.footer-year').forEach(el => {
     el.textContent = new Date().getFullYear();
   });
 
-  // Wire sidebar add button to the same modal
-  document.getElementById('btn-sidebar-add')
-    .addEventListener('click', () => openModal('modal-add-entry'));
+  // Clear history button
+  document.getElementById('btn-clear-history').addEventListener('click', () => {
+    if (!confirm('Clear draw history?')) return;
+    state.history = [];
+    state.round   = 0;
+    renderHistory();
+    saveState();
+  });
 </script>
 
 </body>

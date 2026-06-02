@@ -1,0 +1,16 @@
+#!/bin/sh
+# Block commits containing files that are not valid UTF-8
+bad=0
+for file in $(git diff --cached --name-only --diff-filter=ACM); do
+  if [ -f "$file" ]; then
+    case "$file" in
+      *.html|*.css|*.js|*.svg|*.md|*.json|*.txt)
+        if ! iconv -f UTF-8 -t UTF-8 "$file" > /dev/null 2>&1; then
+          echo "ERROR: $file is not valid UTF-8. Re-encode before committing."
+          bad=1
+        fi
+        ;;
+    esac
+  fi
+done
+exit $bad
