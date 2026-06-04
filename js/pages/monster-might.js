@@ -96,6 +96,7 @@ const state = {
   currentResults: [],   // cards shown in the current results panel
   history: [],
   round: 0,
+  drawCounts: {},       // remembered draw-per-deck for this encounter
 };
 
 function initDecks() {
@@ -188,26 +189,68 @@ function discardCard(resultIndex) {
   saveState();
 }
 
+
+/* ── Draw count preferences (per encounter) ─────────────────── */
+function defaultDrawCounts() {
+  const counts = {};
+  DECK_NAMES.forEach(function(n) { counts[n] = 0; });
+  return counts;
+}
+
+function ensureDrawCounts() {
+  if (!state.drawCounts || typeof state.drawCounts !== 'object') {
+    state.drawCounts = defaultDrawCounts();
+  }
+  DECK_NAMES.forEach(function(n) {
+    if (state.drawCounts[n] == null) state.drawCounts[n] = 0;
+  });
+}
+
+/** Read inputs into state.drawCounts and persist. */
+function persistDrawCounts() {
+  ensureDrawCounts();
+  DECK_NAMES.forEach(function(name) {
+    state.drawCounts[name] = parseInt(dom[name].input.value, 10) || 0;
+  });
+  saveState();
+}
+
+/** Apply saved drawCounts to inputs (clamped to current drawable max). */
+function applyDrawCounts() {
+  ensureDrawCounts();
+  DECK_NAMES.forEach(function(name) {
+    const max = getDeckDrawableMax(name);
+    const val = Math.max(0, Math.min(state.drawCounts[name] || 0, max));
+    dom[name].input.value = val;
+    state.drawCounts[name] = val;
+  });
+  renderTotalBar();
+}
+
 /* ── Persistence ────────────────────────────────────────────── */
 function saveState() {
+  ensureDrawCounts();
   saveData('monster-might', {
-    decks:   state.decks,
-    round:   state.round,
-    history: state.history,
+    decks:       state.decks,
+    round:       state.round,
+    history:     state.history,
+    drawCounts:  state.drawCounts,
   });
 }
 
 function loadState() {
   const saved = loadData('monster-might');
   if (saved && saved.decks && DECK_NAMES.every(n => saved.decks[n])) {
-    state.decks   = saved.decks;
-    state.round   = saved.round   || 0;
-    state.history = saved.history || [];
+    state.decks      = saved.decks;
+    state.round      = saved.round   || 0;
+    state.history    = saved.history || [];
+    state.drawCounts = saved.drawCounts || defaultDrawCounts();
     // Ensure all pools exist (backward compat)
     DECK_NAMES.forEach(function(n) {
       if (!state.decks[n].excluded) state.decks[n].excluded = [];
       if (!state.decks[n].spent)    state.decks[n].spent    = [];
     });
+    ensureDrawCounts();
     return true;
   }
   return false;
@@ -456,8 +499,7 @@ function handleDraw() {
   renderDeckStatus();
   renderHistory();
 
-  DECK_NAMES.forEach(name => { dom[name].input.value = 0; });
-  renderTotalBar();
+  persistDrawCounts();
 
   reshuffles.forEach(d =>
     showToast(DECK_DEFS[d].label + ' deck reshuffled', 'info', 3000)
@@ -473,19 +515,19 @@ function handleReset() {
   state.currentResults = [];
   initDecks();
 
-  DECK_NAMES.forEach(name => { dom[name].input.value = 0; });
-
   renderDeckStatus();
+  applyDrawCounts();
   renderHistory();
   renderResults([], []);
-  renderTotalBar();
   saveState();
   showToast('All decks reset', 'success');
 }
 
 function handleClearInputs() {
+  state.drawCounts = defaultDrawCounts();
   DECK_NAMES.forEach(name => { dom[name].input.value = 0; });
   renderTotalBar();
+  saveState();
 }
 
 function clampInput(name) {
@@ -493,7 +535,10 @@ function clampInput(name) {
   let   val = parseInt(dom[name].input.value, 10) || 0;
   val = Math.max(0, Math.min(val, max));
   dom[name].input.value = val;
+  ensureDrawCounts();
+  state.drawCounts[name] = val;
   renderTotalBar();
+  saveState();
 }
 
 /* ── Events ─────────────────────────────────────────────────── */
@@ -514,11 +559,13 @@ function bindEvents() {
         e.preventDefault();
         els.input.value = Math.min((parseInt(els.input.value, 10) || 0) + 1, max);
         renderTotalBar();
+        persistDrawCounts();
       }
       if (e.key === 'ArrowDown') {
         e.preventDefault();
         els.input.value = Math.max((parseInt(els.input.value, 10) || 0) - 1, 0);
         renderTotalBar();
+        persistDrawCounts();
       }
     });
 
@@ -526,11 +573,13 @@ function bindEvents() {
       const max = getDeckDrawableMax(name);
       els.input.value = Math.min((parseInt(els.input.value, 10) || 0) + 1, max);
       renderTotalBar();
+      persistDrawCounts();
     });
 
     els.btnDown.addEventListener('click', function() {
       els.input.value = Math.max((parseInt(els.input.value, 10) || 0) - 1, 0);
       renderTotalBar();
+      persistDrawCounts();
     });
   });
 }
@@ -540,10 +589,15 @@ document.addEventListener('DOMContentLoaded', function() {
   cacheDom();
 
   const restored = loadState();
-  if (!restored) initDecks();
+  if (!restored) {
+    initDecks();
+    state.drawCounts = defaultDrawCounts();
+  }
 
   bindEvents();
+  ensureDrawCounts();
   renderDeckStatus();
+  applyDrawCounts();
   renderHistory();
   renderTotalBar();
 
