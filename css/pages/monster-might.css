@@ -430,19 +430,28 @@
 .result-card--black  { --card-border: #4a3860; --card-accent: #7a6e8a; --card-value-color: #b0a0c8; }
 
 /* Crit cards get extra glow */
+/* Crit: keep deck border colour, signal via glow + thick stripe + star */
 .result-card--crit {
-  border-color: var(--color-gold);
-  box-shadow: 0 0 14px rgba(240,192,64,0.35), var(--shadow-sm);
+  /* No border-color override — deck identity stays intact */
+  box-shadow: 0 0 12px rgba(240,192,64,0.28), var(--shadow-sm);
 }
 
+/* Thicker, brighter top accent stripe on crit cards */
+.result-card--crit::before {
+  height: 5px;
+  filter: brightness(1.5);
+}
+
+/* Gold star — slightly larger and positioned more clearly */
 .result-card--crit::after {
   content: '★';
   position: absolute;
-  top: 3px;
-  right: 4px;
-  font-size: 8px;
+  top: 4px;
+  right: 5px;
+  font-size: 11px;
   color: var(--color-gold-bright);
   line-height: 1;
+  text-shadow: 0 0 6px rgba(240,192,64,0.7);
 }
 
 /* Blank cards */
@@ -481,14 +490,15 @@
   white-space: nowrap;
   font-family: var(--font-display);
   font-size: 8px;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--color-gold-bright);
-  background-color: rgba(201,148,10,0.15);
-  border: 1px solid rgba(201,148,10,0.3);
+  background-color: rgba(201,148,10,0.25);
+  border: 1px solid rgba(240,192,64,0.5);
   border-radius: 3px;
-  padding: 1px 4px;
+  padding: 2px 5px;
   line-height: 1.4;
+  text-shadow: 0 0 8px rgba(240,192,64,0.5);
 }
 
 /* ── Draw history ────────────────────────────────────────────── */
