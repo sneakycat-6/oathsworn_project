@@ -754,3 +754,10 @@
   color: var(--color-arcane);
   line-height: 1;
 }
+
+.deck-panel__reshuffle-hint {
+  font-family: var(--font-display);
+  font-size: 9px;
+  color: var(--color-arcane);
+  letter-spacing: 0.02em;
+}

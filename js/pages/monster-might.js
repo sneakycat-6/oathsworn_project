@@ -137,6 +137,12 @@ function drawFromDeck(deckName, count) {
   return { cards: drawn, reshuffled };
 }
 
+/** Cards that can still be drawn (available now + discard reshuffles in). */
+function getDeckDrawableMax(deckName) {
+  const deck = state.decks[deckName];
+  return deck.available.length + deck.discard.length;
+}
+
 /**
  * Redraw a single card at resultIndex.
  * The original card stays in discard; a replacement is drawn from the same deck.
@@ -238,13 +244,17 @@ function renderDeckStatus() {
     const avail = deck.available.length;
     const els   = dom[name];
 
-    els.counter.innerHTML = '<span>' + avail + '</span> / 18';
+    const drawable = getDeckDrawableMax(name);
+    const discardCount = deck.discard.length;
+
+    els.counter.innerHTML = avail === 0 && discardCount > 0
+      ? '<span>0</span> / 18 <span class="deck-panel__reshuffle-hint" title="Discard will reshuffle">(+' + discardCount + ')</span>'
+      : '<span>' + avail + '</span> / 18';
 
     const pct = (avail / 18) * 100;
     els.progress.style.width = pct + '%';
 
-    const spentCount   = deck.spent.length;
-    const discardCount = deck.discard.length;
+    const spentCount = deck.spent.length;
     if (spentCount > 0 && discardCount > 0) {
       els.discard.textContent = spentCount + ' spent · ' + discardCount + ' in discard';
     } else if (spentCount > 0) {
@@ -255,9 +265,9 @@ function renderDeckStatus() {
       els.discard.textContent = 'Discard empty';
     }
 
-    els.input.max = avail;
-    if ((parseInt(els.input.value, 10) || 0) > avail) {
-      els.input.value = avail;
+    els.input.max = drawable;
+    if ((parseInt(els.input.value, 10) || 0) > drawable) {
+      els.input.value = drawable;
     }
   });
 }
@@ -270,7 +280,7 @@ function getTotalDraw() {
 
 function renderTotalBar() {
   const total    = getTotalDraw();
-  const maxTotal = DECK_NAMES.reduce((s, n) => s + state.decks[n].available.length, 0);
+  const maxTotal = DECK_NAMES.reduce(function(s, n) { return s + getDeckDrawableMax(n); }, 0);
   const pct      = maxTotal > 0 ? Math.min((total / maxTotal) * 100, 100) : 0;
 
   dom.totalValue.textContent = total;
@@ -479,7 +489,7 @@ function handleClearInputs() {
 }
 
 function clampInput(name) {
-  const max = state.decks[name].available.length;
+  const max = getDeckDrawableMax(name);
   let   val = parseInt(dom[name].input.value, 10) || 0;
   val = Math.max(0, Math.min(val, max));
   dom[name].input.value = val;
@@ -499,7 +509,7 @@ function bindEvents() {
     els.input.addEventListener('change', () => clampInput(name));
 
     els.input.addEventListener('keydown', function(e) {
-      const max = state.decks[name].available.length;
+      const max = getDeckDrawableMax(name);
       if (e.key === 'ArrowUp') {
         e.preventDefault();
         els.input.value = Math.min((parseInt(els.input.value, 10) || 0) + 1, max);
@@ -513,7 +523,7 @@ function bindEvents() {
     });
 
     els.btnUp.addEventListener('click', function() {
-      const max = state.decks[name].available.length;
+      const max = getDeckDrawableMax(name);
       els.input.value = Math.min((parseInt(els.input.value, 10) || 0) + 1, max);
       renderTotalBar();
     });
