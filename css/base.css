@@ -71,7 +71,7 @@ h5 { font-size: var(--text-xl); }
 h6 { font-size: var(--text-lg); }
 
 p {
-  line-height: var(--leading-relaxed);
+  line-height: 1.75;
   color: var(--color-text-secondary);
 }
 
