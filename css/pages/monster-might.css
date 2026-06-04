@@ -604,7 +604,7 @@
   .deck-picker { grid-template-columns: 1fr 1fr; gap: var(--space-3); }
   .draw-controls { flex-direction: column; align-items: stretch; }
   .draw-controls__actions { justify-content: flex-end; }
-  .result-card { width: 60px; height: 80px; }
+  .result-card { width: 60px; height: 90px; }
   .result-card__value { font-size: var(--text-3xl); }
 }
 
