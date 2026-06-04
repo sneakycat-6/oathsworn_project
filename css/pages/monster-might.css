@@ -400,10 +400,9 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
-  gap: 0;
-  padding-top: 16px;
-  padding-bottom: 26px;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 4px 26px;
   position: relative;
   overflow: hidden;
   box-shadow: var(--shadow-sm);
@@ -467,7 +466,6 @@
   color: var(--card-value-color, var(--color-text-primary));
   line-height: 1;
   text-shadow: 0 2px 8px rgba(0,0,0,0.5);
-  margin-top: 8px;
 }
 
 .result-card__blank-icon {
@@ -476,6 +474,11 @@
 }
 
 .result-card__crit-badge {
+  position: absolute;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
   font-family: var(--font-display);
   font-size: 8px;
   letter-spacing: 0.08em;
@@ -486,7 +489,6 @@
   border-radius: 3px;
   padding: 1px 4px;
   line-height: 1.4;
-  margin-top: 6px;
 }
 
 /* ── Draw history ────────────────────────────────────────────── */
@@ -599,6 +601,18 @@
   to   { opacity: 1; transform: translateY(0); }
 }
 
+
+/* ── Redrawn-from indicator ─────────────────────────────────────── */
+.result-card__origin {
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  font-family: var(--font-display);
+  font-size: 8px;
+  color: var(--color-arcane);
+  line-height: 1;
+  opacity: 0.8;
+}
 /* ── Responsive ─────────────────────────────────────────────── */
 @media (max-width: 900px) {
   .deck-picker { grid-template-columns: repeat(2, 1fr); }
@@ -608,7 +622,7 @@
   .deck-picker { grid-template-columns: 1fr 1fr; gap: var(--space-3); }
   .draw-controls { flex-direction: column; align-items: stretch; }
   .draw-controls__actions { justify-content: flex-end; }
-  .result-card { width: 60px; height: 110px; }
+  .result-card { width: 60px; height: 110px; padding: 8px 3px 24px; }
   .result-card__value { font-size: var(--text-3xl); }
 }
 
