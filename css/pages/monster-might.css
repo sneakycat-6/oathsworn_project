@@ -497,39 +497,7 @@
   );
 }
 
-/* Crit: sunburst rays using repeating-conic-gradient
-   The large circle is clipped naturally by the card overflow:hidden */
-.result-card--crit .result-card__value-ring::before {
-  content: '';
-  position: absolute;
-  width: 96px;
-  height: 96px;
-  border-radius: 50%;
-  background: repeating-conic-gradient(
-    from 0deg,
-    rgba(201,148,10,0.50) 0deg 4deg,
-    transparent          4deg 14deg
-  );
-  z-index: -1;
-  pointer-events: none;
-}
 
-/* Crit: second tighter ray ring — fills the gap between
-   inner ring and the card deck-label above */
-.result-card--crit .result-card__value-ring::after {
-  content: '';
-  position: absolute;
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  background: repeating-conic-gradient(
-    from 7deg,
-    rgba(201,148,10,0.22) 0deg 4deg,
-    transparent           4deg 14deg
-  );
-  z-index: -1;
-  pointer-events: none;
-}
 
 /* ── Draw history ────────────────────────────────────────────── */
 .history-panel {
