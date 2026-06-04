@@ -461,7 +461,7 @@
 
 .result-card__value {
   font-family: var(--font-display);
-  font-size: var(--text-4xl);
+  font-size: 2rem;
   font-weight: 900;
   color: var(--card-value-color, var(--color-text-primary));
   line-height: 1;
@@ -484,6 +484,7 @@
   border-radius: 3px;
   padding: 1px 4px;
   line-height: 1.4;
+  margin-top: 4px;
 }
 
 /* ── Draw history ────────────────────────────────────────────── */
