@@ -393,18 +393,17 @@
 /* ── Individual result card ─────────────────────────────────── */
 .result-card {
   width: 72px;
-  height: 116px;
+  height: 120px;
   border-radius: var(--radius-md);
   border: 2px solid var(--card-border, var(--color-border));
   background-color: var(--color-bg-elevated);
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: var(--space-1);
-  padding-top: 22px;
-  padding-bottom: 26px;
   justify-content: flex-start;
+  gap: 0;
+  padding-top: 16px;
+  padding-bottom: 26px;
   position: relative;
   overflow: hidden;
   box-shadow: var(--shadow-sm);
@@ -468,7 +467,7 @@
   color: var(--card-value-color, var(--color-text-primary));
   line-height: 1;
   text-shadow: 0 2px 8px rgba(0,0,0,0.5);
-  margin-top: 4px;
+  margin-top: 8px;
 }
 
 .result-card__blank-icon {
@@ -487,7 +486,7 @@
   border-radius: 3px;
   padding: 1px 4px;
   line-height: 1.4;
-  margin-top: 4px;
+  margin-top: 6px;
 }
 
 /* ── Draw history ────────────────────────────────────────────── */
@@ -609,7 +608,7 @@
   .deck-picker { grid-template-columns: 1fr 1fr; gap: var(--space-3); }
   .draw-controls { flex-direction: column; align-items: stretch; }
   .draw-controls__actions { justify-content: flex-end; }
-  .result-card { width: 60px; height: 80px; }
+  .result-card { width: 60px; height: 110px; }
   .result-card__value { font-size: var(--text-3xl); }
 }
 
