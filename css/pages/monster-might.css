@@ -484,7 +484,7 @@
 
 .result-card__crit-badge {
   position: absolute;
-  bottom: 28px;
+  bottom: 23px;
   left: 50%;
   transform: translateX(-50%);
   white-space: nowrap;
