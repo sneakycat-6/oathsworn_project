@@ -430,13 +430,11 @@
 .result-card--black  { --card-border: #4a3860; --card-accent: #7a6e8a; --card-value-color: #b0a0c8; }
 
 /* Crit cards get extra glow */
-/* Crit: keep deck border colour, signal via glow + thick stripe + star */
+/* Crit: thicker, brighter top accent stripe — deck colour stays intact */
 .result-card--crit {
-  /* No border-color override — deck identity stays intact */
-  box-shadow: 0 0 12px rgba(240,192,64,0.28), var(--shadow-sm);
+  box-shadow: var(--shadow-sm);
 }
 
-/* Thicker, brighter top accent stripe on crit cards */
 .result-card--crit::before {
   height: 5px;
   filter: brightness(1.5);
@@ -471,28 +469,46 @@
   opacity: 0.2;
 }
 
-/* badge-area is always in the flex flow (empty on non-crit)
-   so the value sits at the same vertical position on every card */
-.result-card__badge-area {
-  height: 16px;
+/* ── Value ring — present on ALL cards for layout consistency ── */
+/* Non-crit: invisible container; crit: gold ring + wave ripples  */
+.result-card__value-ring {
+  position: relative;
+  width: 48px;
+  height: 48px;
   display: flex;
   align-items: center;
   justify-content: center;
+  border-radius: 50%;
+  border: 1.5px solid transparent;
+  flex-shrink: 0;
 }
 
-.result-card__crit-badge {
-  white-space: nowrap;
-  font-family: var(--font-display);
-  font-size: 8px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--color-gold-bright);
-  background-color: rgba(201,148,10,0.25);
-  border: 1px solid rgba(240,192,64,0.5);
-  border-radius: 3px;
-  padding: 2px 5px;
-  line-height: 1.4;
-  text-shadow: 0 0 8px rgba(240,192,64,0.5);
+/* Crit: primary gold ring */
+.result-card--crit .result-card__value-ring {
+  border-color: var(--color-gold);
+  box-shadow:
+    0 0 8px  rgba(240,192,64,0.45),
+    inset 0 0 6px rgba(240,192,64,0.08);
+}
+
+/* Crit: first wave ripple */
+.result-card--crit .result-card__value-ring::before {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 1px solid rgba(240,192,64,0.28);
+  pointer-events: none;
+}
+
+/* Crit: second (outer) wave ripple — fainter */
+.result-card--crit .result-card__value-ring::after {
+  content: '';
+  position: absolute;
+  inset: -12px;
+  border-radius: 50%;
+  border: 1px solid rgba(240,192,64,0.12);
+  pointer-events: none;
 }
 
 /* ── Draw history ────────────────────────────────────────────── */

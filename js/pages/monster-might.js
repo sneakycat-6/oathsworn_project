@@ -302,22 +302,18 @@ function cardHTML(card, index, animDelay) {
     ? '<span class="result-card__skull" aria-hidden="true">☠</span>'
     : '';
 
-  // badge-area is always rendered so flex layout is identical on crit and non-crit
-  const badgeArea = '<span class="result-card__badge-area">' +
-    (card.isCrit ? '<span class="result-card__crit-badge">Crit</span>' : '') +
-    '</span>';
+  // value-ring wraps the number on ALL cards (crit and non-crit alike)
+  // so the flex layout height is always identical.
+  // The ring itself is invisible on non-crit; gold + wave ripples on crit.
+  const valueContent = card.value === 0
+    ? '<span class="result-card__blank-icon" aria-hidden="true">—</span>'
+    : '<span class="result-card__value">' + card.value + '</span>';
 
-  const inner = card.value === 0
-    ? '<span class="result-card__deck-label">' + DECK_DEFS[card.deck].label + '</span>' +
-      '<span class="result-card__blank-icon" aria-hidden="true">—</span>' +
-      badgeArea +
-      redrawOriginHTML +
-      skullHTML
-    : '<span class="result-card__deck-label">' + DECK_DEFS[card.deck].label + '</span>' +
-      '<span class="result-card__value">' + card.value + '</span>' +
-      badgeArea +
-      redrawOriginHTML +
-      skullHTML;
+  const inner =
+    '<span class="result-card__deck-label">' + DECK_DEFS[card.deck].label + '</span>' +
+    '<span class="result-card__value-ring">' + valueContent + '</span>' +
+    redrawOriginHTML +
+    skullHTML;
 
   const discardLabel = card.isDiscarded ? 'Restore' : 'Discard';
   const actionBtns =
