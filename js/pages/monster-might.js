@@ -91,7 +91,7 @@ function buildDeck(deckName) {
 /* ── State ──────────────────────────────────────────────────── */
 const state = {
   decks: {},
-  // { [deckName]: { available: Card[], discard: Card[], excluded: ExclType[] } }
+  // { [deckName]: { available: Card[], discard: Card[], spent: Card[], excluded: ExclType[] } }
   // ExclType: { value, isCrit }
   currentResults: [],   // cards shown in the current results panel
   history: [],
@@ -104,6 +104,7 @@ function initDecks() {
     state.decks[name] = {
       available: buildDeck(name),
       discard:   [],
+      spent:     [],
       excluded:  [],
     };
   });
@@ -122,6 +123,7 @@ function drawFromDeck(deckName, count) {
 
   while (drawn.length < count) {
     if (deck.available.length === 0) {
+      // Only discard reshuffles — spent (current round) never comes back mid-round
       if (deck.discard.length === 0) break;
       deck.available = shuffle(deck.discard.slice());
       deck.discard    = [];
@@ -130,7 +132,8 @@ function drawFromDeck(deckName, count) {
     drawn.push(deck.available.pop());
   }
 
-  deck.discard.push(...drawn);
+  // Cards go to spent (locked for this round), not discard
+  deck.spent.push(...drawn);
   return { cards: drawn, reshuffled };
 }
 
@@ -194,9 +197,10 @@ function loadState() {
     state.decks   = saved.decks;
     state.round   = saved.round   || 0;
     state.history = saved.history || [];
-    // Ensure excluded array exists (backward compat)
-    DECK_NAMES.forEach(n => {
+    // Ensure all pools exist (backward compat)
+    DECK_NAMES.forEach(function(n) {
       if (!state.decks[n].excluded) state.decks[n].excluded = [];
+      if (!state.decks[n].spent)    state.decks[n].spent    = [];
     });
     return true;
   }
@@ -239,8 +243,17 @@ function renderDeckStatus() {
     const pct = (avail / 18) * 100;
     els.progress.style.width = pct + '%';
 
-    els.discard.textContent =
-      deck.discard.length > 0 ? deck.discard.length + ' in discard' : 'Discard empty';
+    const spentCount   = deck.spent.length;
+    const discardCount = deck.discard.length;
+    if (spentCount > 0 && discardCount > 0) {
+      els.discard.textContent = spentCount + ' spent · ' + discardCount + ' in discard';
+    } else if (spentCount > 0) {
+      els.discard.textContent = spentCount + ' spent this round';
+    } else if (discardCount > 0) {
+      els.discard.textContent = discardCount + ' in discard';
+    } else {
+      els.discard.textContent = 'Discard empty';
+    }
 
     els.input.max = avail;
     if ((parseInt(els.input.value, 10) || 0) > avail) {
@@ -399,6 +412,13 @@ function handleDraw() {
 
   if (totalCount === 0) return;
 
+  // Retire last round's spent cards into the discard pool
+  DECK_NAMES.forEach(function(name) {
+    const deck = state.decks[name];
+    deck.discard.push.apply(deck.discard, deck.spent);
+    deck.spent = [];
+  });
+
   state.round++;
   const allDrawn   = [];
   const reshuffles = [];
@@ -429,7 +449,7 @@ function handleDraw() {
 }
 
 function handleReset() {
-  if (!confirm('Reset all decks to their full card count? Draw history will be cleared.\n\nNote: card exclusions from character abilities will be kept.')) return;
+  if (!confirm('Reset all decks? Available, spent and discard piles will be cleared. Draw history will be cleared.\n\nNote: card exclusions from character abilities will be kept.')) return;
   state.round   = 0;
   state.history = [];
   state.currentResults = [];
