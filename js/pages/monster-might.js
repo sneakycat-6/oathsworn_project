@@ -137,6 +137,18 @@ function drawFromDeck(deckName, count) {
   return { cards: drawn, reshuffled };
 }
 
+
+/** Sync the current round's history entry to reflect redraws/discards. */
+function syncCurrentHistory() {
+  if (!state.history.length) return;
+  const entry = state.history[state.history.length - 1];
+  if (entry.round !== state.round) return;
+  entry.cards = state.currentResults.slice();
+  entry.total = state.currentResults
+    .filter(function(c) { return !c.isDiscarded; })
+    .reduce(function(s, c) { return s + c.value; }, 0);
+}
+
 /**
  * Redraw a single card at resultIndex.
  * The original card stays in discard; a replacement is drawn from the same deck.
@@ -164,8 +176,11 @@ function redrawCard(resultIndex) {
     showToast(DECK_DEFS[deckName].label + ' deck reshuffled', 'info', 3000);
   }
 
+  syncCurrentHistory();
   renderResults(state.currentResults, []);
   renderDeckStatus();
+  renderSpentPool();
+  renderHistory();
   saveState();
 }
 
@@ -178,8 +193,36 @@ function discardCard(resultIndex) {
   const card = state.currentResults[resultIndex];
   if (!card) return;
   card.isDiscarded = !card.isDiscarded;
+  syncCurrentHistory();
   renderResults(state.currentResults, []);
+  renderHistory();
   saveState();
+}
+
+
+/** Render the spent-this-round mini chips inside each deck panel. */
+function renderSpentPool() {
+  DECK_NAMES.forEach(function(name) {
+    var container = dom[name].spent;
+    if (!container) return;
+    var cards = state.decks[name].spent;
+    if (!cards.length) {
+      container.innerHTML = '<span class="spent-empty">None yet</span>';
+      return;
+    }
+    container.innerHTML = cards.map(function(card) {
+      var label  = card.value === 0 ? '—' : card.value;
+      var cls    = 'spent-chip spent-chip--' + name +
+                   (card.isCrit     ? ' spent-chip--crit'     : '') +
+                   (card.isRedrawn  ? ' spent-chip--redrawn'  : '') +
+                   (card.isDiscarded ? ' spent-chip--discarded' : '');
+      var title  = DECK_DEFS[name].label +
+                   (card.isCrit    ? ' ★ crit'    : '') +
+                   (card.isRedrawn ? ' ↺ redrawn' : '') +
+                   (card.isDiscarded ? ' ✕ discarded' : '');
+      return '<span class="' + cls + '" title="' + title + '">' + label + '</span>';
+    }).join('');
+  });
 }
 
 /* ── Persistence ────────────────────────────────────────────── */
@@ -227,6 +270,7 @@ function cacheDom() {
       counter:  document.getElementById('counter-' + name),
       progress: document.getElementById('progress-' + name),
       discard:  document.getElementById('discard-' + name),
+      spent:    document.getElementById('spent-' + name),
     };
   });
 }
@@ -444,6 +488,7 @@ function handleDraw() {
 
   renderResults(allDrawn, reshuffles);
   renderDeckStatus();
+  renderSpentPool();
   renderHistory();
 
   DECK_NAMES.forEach(name => { dom[name].input.value = 0; });
@@ -466,6 +511,7 @@ function handleReset() {
   DECK_NAMES.forEach(name => { dom[name].input.value = 0; });
 
   renderDeckStatus();
+  renderSpentPool();
   renderHistory();
   renderResults([], []);
   renderTotalBar();
