@@ -302,14 +302,20 @@ function cardHTML(card, index, animDelay) {
     ? '<span class="result-card__skull" aria-hidden="true">☠</span>'
     : '';
 
+  // badge-area is always rendered so flex layout is identical on crit and non-crit
+  const badgeArea = '<span class="result-card__badge-area">' +
+    (card.isCrit ? '<span class="result-card__crit-badge">Crit</span>' : '') +
+    '</span>';
+
   const inner = card.value === 0
     ? '<span class="result-card__deck-label">' + DECK_DEFS[card.deck].label + '</span>' +
       '<span class="result-card__blank-icon" aria-hidden="true">—</span>' +
+      badgeArea +
       redrawOriginHTML +
       skullHTML
     : '<span class="result-card__deck-label">' + DECK_DEFS[card.deck].label + '</span>' +
       '<span class="result-card__value">' + card.value + '</span>' +
-      (card.isCrit ? '<span class="result-card__crit-badge">Crit</span>' : '') +
+      badgeArea +
       redrawOriginHTML +
       skullHTML;
 

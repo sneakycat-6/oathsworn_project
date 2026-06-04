@@ -442,17 +442,6 @@
   filter: brightness(1.5);
 }
 
-/* Gold star — slightly larger and positioned more clearly */
-.result-card--crit::after {
-  content: '★';
-  position: absolute;
-  top: 4px;
-  right: 5px;
-  font-size: 11px;
-  color: var(--color-gold-bright);
-  line-height: 1;
-  text-shadow: 0 0 6px rgba(240,192,64,0.7);
-}
 
 /* Blank cards */
 .result-card--blank .result-card__value {
@@ -482,11 +471,16 @@
   opacity: 0.2;
 }
 
+/* badge-area is always in the flex flow (empty on non-crit)
+   so the value sits at the same vertical position on every card */
+.result-card__badge-area {
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .result-card__crit-badge {
-  position: absolute;
-  bottom: 23px;
-  left: 50%;
-  transform: translateX(-50%);
   white-space: nowrap;
   font-family: var(--font-display);
   font-size: 8px;
