@@ -13,7 +13,7 @@ oathsworn_project/
 ├── index.html                  # Landing / home page
 │
 ├── pages/
-│   ├── app-one.html            # Sub-app page 1 (sidebar + detail panel layout)
+│   ├── monster-deck.html            # Monster Deck app
 │   └── app-two.html            # Sub-app page 2 (full-width card grid layout)
 │
 ├── css/
@@ -43,7 +43,7 @@ oathsworn_project/
 
 ## Adding a New Page
 
-1. Copy `pages/app-one.html` (or `app-two.html`) into `pages/` with a descriptive name.
+1. Copy `pages/monster-deck.html` (or `app-two.html`) into `pages/` with a descriptive name.
 2. Add a `<link>` entry in the new file's `<head>` for any page-specific CSS you need.
 3. Add a `<script>` entry for any page-specific JS (`js/pages/<name>.js`).
 4. Add the new page's `<li>` to the `<ul class="nav__menu">` in **every** HTML file.
@@ -57,7 +57,7 @@ All shared logic (nav, utils, theme, layout) loads automatically.
 
 | Layout | How to use |
 |--------|-----------|
-| Sidebar + detail panel | Default `app-layout` — see `app-one.html` |
+| Sidebar + detail panel | Default `app-layout` — see `monster-deck.html` |
 | Full-width card grid | `app-layout--full` + `.grid` — see `app-two.html` |
 
 Both layouts are fully responsive and collapse to a single column on mobile.
@@ -93,7 +93,7 @@ Set the source to the repository root. The app is fully static with no backend d
 | `css/theme.css` | Hero section, glows, ornamental elements |
 | `css/components.css` | Button styles, card variants, badges |
 | `index.html` | Hero text, lore quote, app card descriptions |
-| `pages/app-one.html` | App One content, form fields, tabs |
+| `pages/monster-deck.html` | Monster Deck content |
 | `pages/app-two.html` | App Two content, card grid, filter buttons |
 | `js/pages/app-page.js` | Shared starter logic for sub-app pages |
 

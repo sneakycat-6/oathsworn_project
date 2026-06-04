@@ -393,7 +393,7 @@
 /* ── Individual result card ─────────────────────────────────── */
 .result-card {
   width: 72px;
-  height: 96px;
+  height: 120px;
   border-radius: var(--radius-md);
   border: 2px solid var(--card-border, var(--color-border));
   background-color: var(--color-bg-elevated);
@@ -401,7 +401,8 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--space-1);
+  gap: 6px;
+  padding: 8px 4px 26px;
   position: relative;
   overflow: hidden;
   box-shadow: var(--shadow-sm);
@@ -429,20 +430,16 @@
 .result-card--black  { --card-border: #4a3860; --card-accent: #7a6e8a; --card-value-color: #b0a0c8; }
 
 /* Crit cards get extra glow */
+/* Crit: thicker, brighter top accent stripe — deck colour stays intact */
 .result-card--crit {
-  border-color: var(--color-gold);
-  box-shadow: 0 0 14px rgba(240,192,64,0.35), var(--shadow-sm);
+  box-shadow: var(--shadow-sm);
 }
 
-.result-card--crit::after {
-  content: '★';
-  position: absolute;
-  top: 3px;
-  right: 4px;
-  font-size: 8px;
-  color: var(--color-gold-bright);
-  line-height: 1;
+.result-card--crit::before {
+  height: 5px;
+  filter: brightness(1.5);
 }
+
 
 /* Blank cards */
 .result-card--blank .result-card__value {
@@ -460,7 +457,7 @@
 
 .result-card__value {
   font-family: var(--font-display);
-  font-size: var(--text-4xl);
+  font-size: 2rem;
   font-weight: 900;
   color: var(--card-value-color, var(--color-text-primary));
   line-height: 1;
@@ -472,18 +469,35 @@
   opacity: 0.2;
 }
 
-.result-card__crit-badge {
-  font-family: var(--font-display);
-  font-size: 8px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--color-gold-bright);
-  background-color: rgba(201,148,10,0.15);
-  border: 1px solid rgba(201,148,10,0.3);
-  border-radius: 3px;
-  padding: 1px 4px;
-  line-height: 1.4;
+/* ── Value ring — present on ALL cards for layout consistency ── */
+/* Non-crit: plain container. Crit: sunburst with radiating spokes */
+.result-card__value-ring {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1.5px solid transparent;
+  flex-shrink: 0;
+  isolation: isolate;
 }
+
+/* Crit: gold ring + inner tint */
+.result-card--crit .result-card__value-ring {
+  border: 2px solid var(--card-accent, var(--color-gold));
+  box-shadow:
+    0 0 10px rgba(201,148,10,0.4),
+    inset 0 0 8px rgba(201,148,10,0.12);
+  background: radial-gradient(
+    circle,
+    rgba(201,148,10,0.14) 0%,
+    transparent 100%
+  );
+}
+
+
 
 /* ── Draw history ────────────────────────────────────────────── */
 .history-panel {
@@ -595,6 +609,18 @@
   to   { opacity: 1; transform: translateY(0); }
 }
 
+
+/* ── Redrawn-from indicator ─────────────────────────────────────── */
+.result-card__origin {
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  font-family: var(--font-display);
+  font-size: 8px;
+  color: var(--color-arcane);
+  line-height: 1;
+  opacity: 0.8;
+}
 /* ── Responsive ─────────────────────────────────────────────── */
 @media (max-width: 900px) {
   .deck-picker { grid-template-columns: repeat(2, 1fr); }
@@ -604,7 +630,7 @@
   .deck-picker { grid-template-columns: 1fr 1fr; gap: var(--space-3); }
   .draw-controls { flex-direction: column; align-items: stretch; }
   .draw-controls__actions { justify-content: flex-end; }
-  .result-card { width: 60px; height: 80px; }
+  .result-card { width: 60px; height: 110px; padding: 8px 3px 24px; }
   .result-card__value { font-size: var(--text-3xl); }
 }
 
@@ -669,37 +695,50 @@
   color: var(--color-text-muted);
 }
 
-/* ── Redraw button on result cards ──────────────────────────── */
-.result-card__redraw {
+/* ── Action buttons on result cards ─────────────────────────── */
+.result-card__actions {
   position: absolute;
-  bottom: 3px;
-  right: 3px;
-  width: 18px;
-  height: 18px;
-  border-radius: var(--radius-sm);
-  background-color: rgba(0, 0, 0, 0.5);
-  border: 1px solid var(--color-border);
-  color: var(--color-text-muted);
-  font-size: 11px;
-  line-height: 1;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  gap: 1px;
+  padding: 2px;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.65));
+}
+
+.result-card__btn {
+  flex: 1;
+  height: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
+  font-size: 13px;
+  font-family: system-ui, sans-serif;
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  opacity: 0.6;
   cursor: pointer;
-  opacity: 0;
-  transition: opacity var(--transition-fast),
-              background-color var(--transition-fast),
-              color var(--transition-fast);
+  line-height: 1;
+  transition: opacity var(--transition-fast), color var(--transition-fast);
 }
 
-.result-card:hover .result-card__redraw {
+.result-card__btn:hover {
   opacity: 1;
+  color: var(--card-accent, var(--color-gold));
 }
 
-.result-card__redraw:hover {
-  background-color: var(--color-gold-dim);
-  border-color: var(--color-gold-muted);
-  color: var(--color-gold-bright);
+.result-card__btn--discard.is-active {
+  background-color: rgba(155, 28, 28, 0.3);
+  border-color: var(--color-red-muted);
+  color: var(--color-red-bright);
+}
+
+.result-card__btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 /* Redrawn card indicator */
@@ -714,4 +753,11 @@
   font-size: 9px;
   color: var(--color-arcane);
   line-height: 1;
+}
+
+.deck-panel__reshuffle-hint {
+  font-family: var(--font-display);
+  font-size: 9px;
+  color: var(--color-arcane);
+  letter-spacing: 0.02em;
 }

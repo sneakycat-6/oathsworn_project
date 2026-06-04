@@ -30,9 +30,9 @@
   --color-arcane-dim:     #102e2b;
 
   /* Text */
-  --color-text-primary:   #ede0c8;   /* parchment */
-  --color-text-secondary: #a8957c;   /* aged parchment */
-  --color-text-muted:     #6a5a48;   /* faded ink */
+  --color-text-primary:   #f2e8d5;   /* parchment */
+  --color-text-secondary: #c0a882;   /* aged parchment */
+  --color-text-muted:     #9e8a70;   /* faded ink */
   --color-text-inverse:   #0c0a0f;
 
   /* Borders */

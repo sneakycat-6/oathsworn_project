@@ -91,11 +91,12 @@ function buildDeck(deckName) {
 /* ── State ──────────────────────────────────────────────────── */
 const state = {
   decks: {},
-  // { [deckName]: { available: Card[], discard: Card[], excluded: ExclType[] } }
+  // { [deckName]: { available: Card[], discard: Card[], spent: Card[], excluded: ExclType[] } }
   // ExclType: { value, isCrit }
   currentResults: [],   // cards shown in the current results panel
   history: [],
   round: 0,
+  drawCounts: {},       // remembered draw-per-deck for this encounter
 };
 
 function initDecks() {
@@ -104,6 +105,7 @@ function initDecks() {
     state.decks[name] = {
       available: buildDeck(name),
       discard:   [],
+      spent:     [],
       excluded:  [],
     };
   });
@@ -122,6 +124,7 @@ function drawFromDeck(deckName, count) {
 
   while (drawn.length < count) {
     if (deck.available.length === 0) {
+      // Only discard reshuffles — spent (current round) never comes back mid-round
       if (deck.discard.length === 0) break;
       deck.available = shuffle(deck.discard.slice());
       deck.discard    = [];
@@ -130,8 +133,15 @@ function drawFromDeck(deckName, count) {
     drawn.push(deck.available.pop());
   }
 
-  deck.discard.push(...drawn);
+  // Cards go to spent (locked for this round), not discard
+  deck.spent.push(...drawn);
   return { cards: drawn, reshuffled };
+}
+
+/** Cards that can still be drawn (available now + discard reshuffles in). */
+function getDeckDrawableMax(deckName) {
+  const deck = state.decks[deckName];
+  return deck.available.length + deck.discard.length;
 }
 
 /**
@@ -179,25 +189,68 @@ function discardCard(resultIndex) {
   saveState();
 }
 
+
+/* ── Draw count preferences (per encounter) ─────────────────── */
+function defaultDrawCounts() {
+  const counts = {};
+  DECK_NAMES.forEach(function(n) { counts[n] = 0; });
+  return counts;
+}
+
+function ensureDrawCounts() {
+  if (!state.drawCounts || typeof state.drawCounts !== 'object') {
+    state.drawCounts = defaultDrawCounts();
+  }
+  DECK_NAMES.forEach(function(n) {
+    if (state.drawCounts[n] == null) state.drawCounts[n] = 0;
+  });
+}
+
+/** Read inputs into state.drawCounts and persist. */
+function persistDrawCounts() {
+  ensureDrawCounts();
+  DECK_NAMES.forEach(function(name) {
+    state.drawCounts[name] = parseInt(dom[name].input.value, 10) || 0;
+  });
+  saveState();
+}
+
+/** Apply saved drawCounts to inputs (clamped to current drawable max). */
+function applyDrawCounts() {
+  ensureDrawCounts();
+  DECK_NAMES.forEach(function(name) {
+    const max = getDeckDrawableMax(name);
+    const val = Math.max(0, Math.min(state.drawCounts[name] || 0, max));
+    dom[name].input.value = val;
+    state.drawCounts[name] = val;
+  });
+  renderTotalBar();
+}
+
 /* ── Persistence ────────────────────────────────────────────── */
 function saveState() {
+  ensureDrawCounts();
   saveData('monster-might', {
-    decks:   state.decks,
-    round:   state.round,
-    history: state.history,
+    decks:       state.decks,
+    round:       state.round,
+    history:     state.history,
+    drawCounts:  state.drawCounts,
   });
 }
 
 function loadState() {
   const saved = loadData('monster-might');
   if (saved && saved.decks && DECK_NAMES.every(n => saved.decks[n])) {
-    state.decks   = saved.decks;
-    state.round   = saved.round   || 0;
-    state.history = saved.history || [];
-    // Ensure excluded array exists (backward compat)
-    DECK_NAMES.forEach(n => {
+    state.decks      = saved.decks;
+    state.round      = saved.round   || 0;
+    state.history    = saved.history || [];
+    state.drawCounts = saved.drawCounts || defaultDrawCounts();
+    // Ensure all pools exist (backward compat)
+    DECK_NAMES.forEach(function(n) {
       if (!state.decks[n].excluded) state.decks[n].excluded = [];
+      if (!state.decks[n].spent)    state.decks[n].spent    = [];
     });
+    ensureDrawCounts();
     return true;
   }
   return false;
@@ -234,17 +287,30 @@ function renderDeckStatus() {
     const avail = deck.available.length;
     const els   = dom[name];
 
-    els.counter.innerHTML = '<span>' + avail + '</span> / 18';
+    const drawable = getDeckDrawableMax(name);
+    const discardCount = deck.discard.length;
+
+    els.counter.innerHTML = avail === 0 && discardCount > 0
+      ? '<span>0</span> / 18 <span class="deck-panel__reshuffle-hint" title="Discard will reshuffle">(+' + discardCount + ')</span>'
+      : '<span>' + avail + '</span> / 18';
 
     const pct = (avail / 18) * 100;
     els.progress.style.width = pct + '%';
 
-    els.discard.textContent =
-      deck.discard.length > 0 ? deck.discard.length + ' in discard' : 'Discard empty';
+    const spentCount = deck.spent.length;
+    if (spentCount > 0 && discardCount > 0) {
+      els.discard.textContent = spentCount + ' spent · ' + discardCount + ' in discard';
+    } else if (spentCount > 0) {
+      els.discard.textContent = spentCount + ' spent this round';
+    } else if (discardCount > 0) {
+      els.discard.textContent = discardCount + ' in discard';
+    } else {
+      els.discard.textContent = 'Discard empty';
+    }
 
-    els.input.max = avail;
-    if ((parseInt(els.input.value, 10) || 0) > avail) {
-      els.input.value = avail;
+    els.input.max = drawable;
+    if ((parseInt(els.input.value, 10) || 0) > drawable) {
+      els.input.value = drawable;
     }
   });
 }
@@ -257,7 +323,7 @@ function getTotalDraw() {
 
 function renderTotalBar() {
   const total    = getTotalDraw();
-  const maxTotal = DECK_NAMES.reduce((s, n) => s + state.decks[n].available.length, 0);
+  const maxTotal = DECK_NAMES.reduce(function(s, n) { return s + getDeckDrawableMax(n); }, 0);
   const pct      = maxTotal > 0 ? Math.min((total / maxTotal) * 100, 100) : 0;
 
   dom.totalValue.textContent = total;
@@ -285,14 +351,22 @@ function cardHTML(card, index, animDelay) {
        '</span>')
     : '';
 
-  const inner = card.value === 0
-    ? '<span class="result-card__deck-label">' + DECK_DEFS[card.deck].label + '</span>' +
-      '<span class="result-card__blank-icon" aria-hidden="true">—</span>' +
-      redrawOriginHTML
-    : '<span class="result-card__deck-label">' + DECK_DEFS[card.deck].label + '</span>' +
-      '<span class="result-card__value">' + card.value + '</span>' +
-      (card.isCrit ? '<span class="result-card__crit-badge">Crit</span>' : '') +
-      redrawOriginHTML;
+  const skullHTML = card.isDiscarded
+    ? '<span class="result-card__skull" aria-hidden="true">☠</span>'
+    : '';
+
+  // value-ring wraps the number on ALL cards (crit and non-crit alike)
+  // so the flex layout height is always identical.
+  // The ring itself is invisible on non-crit; gold + wave ripples on crit.
+  const valueContent = card.value === 0
+    ? '<span class="result-card__blank-icon" aria-hidden="true">—</span>'
+    : '<span class="result-card__value">' + card.value + '</span>';
+
+  const inner =
+    '<span class="result-card__deck-label">' + DECK_DEFS[card.deck].label + '</span>' +
+    '<span class="result-card__value-ring">' + valueContent + '</span>' +
+    redrawOriginHTML +
+    skullHTML;
 
   const discardLabel = card.isDiscarded ? 'Restore' : 'Discard';
   const actionBtns =
@@ -399,6 +473,13 @@ function handleDraw() {
 
   if (totalCount === 0) return;
 
+  // Retire last round's spent cards into the discard pool
+  DECK_NAMES.forEach(function(name) {
+    const deck = state.decks[name];
+    deck.discard.push.apply(deck.discard, deck.spent);
+    deck.spent = [];
+  });
+
   state.round++;
   const allDrawn   = [];
   const reshuffles = [];
@@ -418,8 +499,7 @@ function handleDraw() {
   renderDeckStatus();
   renderHistory();
 
-  DECK_NAMES.forEach(name => { dom[name].input.value = 0; });
-  renderTotalBar();
+  persistDrawCounts();
 
   reshuffles.forEach(d =>
     showToast(DECK_DEFS[d].label + ' deck reshuffled', 'info', 3000)
@@ -429,33 +509,36 @@ function handleDraw() {
 }
 
 function handleReset() {
-  if (!confirm('Reset all decks to their full card count? Draw history will be cleared.\n\nNote: card exclusions from character abilities will be kept.')) return;
+  if (!confirm('Reset all decks? Available, spent and discard piles will be cleared. Draw history will be cleared.\n\nNote: card exclusions from character abilities will be kept.')) return;
   state.round   = 0;
   state.history = [];
   state.currentResults = [];
   initDecks();
 
-  DECK_NAMES.forEach(name => { dom[name].input.value = 0; });
-
   renderDeckStatus();
+  applyDrawCounts();
   renderHistory();
   renderResults([], []);
-  renderTotalBar();
   saveState();
   showToast('All decks reset', 'success');
 }
 
 function handleClearInputs() {
+  state.drawCounts = defaultDrawCounts();
   DECK_NAMES.forEach(name => { dom[name].input.value = 0; });
   renderTotalBar();
+  saveState();
 }
 
 function clampInput(name) {
-  const max = state.decks[name].available.length;
+  const max = getDeckDrawableMax(name);
   let   val = parseInt(dom[name].input.value, 10) || 0;
   val = Math.max(0, Math.min(val, max));
   dom[name].input.value = val;
+  ensureDrawCounts();
+  state.drawCounts[name] = val;
   renderTotalBar();
+  saveState();
 }
 
 /* ── Events ─────────────────────────────────────────────────── */
@@ -471,28 +554,32 @@ function bindEvents() {
     els.input.addEventListener('change', () => clampInput(name));
 
     els.input.addEventListener('keydown', function(e) {
-      const max = state.decks[name].available.length;
+      const max = getDeckDrawableMax(name);
       if (e.key === 'ArrowUp') {
         e.preventDefault();
         els.input.value = Math.min((parseInt(els.input.value, 10) || 0) + 1, max);
         renderTotalBar();
+        persistDrawCounts();
       }
       if (e.key === 'ArrowDown') {
         e.preventDefault();
         els.input.value = Math.max((parseInt(els.input.value, 10) || 0) - 1, 0);
         renderTotalBar();
+        persistDrawCounts();
       }
     });
 
     els.btnUp.addEventListener('click', function() {
-      const max = state.decks[name].available.length;
+      const max = getDeckDrawableMax(name);
       els.input.value = Math.min((parseInt(els.input.value, 10) || 0) + 1, max);
       renderTotalBar();
+      persistDrawCounts();
     });
 
     els.btnDown.addEventListener('click', function() {
       els.input.value = Math.max((parseInt(els.input.value, 10) || 0) - 1, 0);
       renderTotalBar();
+      persistDrawCounts();
     });
   });
 }
@@ -502,10 +589,15 @@ document.addEventListener('DOMContentLoaded', function() {
   cacheDom();
 
   const restored = loadState();
-  if (!restored) initDecks();
+  if (!restored) {
+    initDecks();
+    state.drawCounts = defaultDrawCounts();
+  }
 
   bindEvents();
+  ensureDrawCounts();
   renderDeckStatus();
+  applyDrawCounts();
   renderHistory();
   renderTotalBar();
 
