@@ -470,7 +470,7 @@
 }
 
 /* ── Value ring — present on ALL cards for layout consistency ── */
-/* Non-crit: invisible container; crit: gold ring + wave ripples  */
+/* Non-crit: plain container. Crit: sunburst with radiating spokes */
 .result-card__value-ring {
   position: relative;
   width: 48px;
@@ -481,33 +481,53 @@
   border-radius: 50%;
   border: 1.5px solid transparent;
   flex-shrink: 0;
+  isolation: isolate;
 }
 
-/* Crit: primary gold ring */
+/* Crit: gold ring + inner tint */
 .result-card--crit .result-card__value-ring {
-  border-color: var(--color-gold);
+  border: 2px solid var(--card-accent, var(--color-gold));
   box-shadow:
-    0 0 8px  rgba(240,192,64,0.45),
-    inset 0 0 6px rgba(240,192,64,0.08);
+    0 0 10px rgba(201,148,10,0.4),
+    inset 0 0 8px rgba(201,148,10,0.12);
+  background: radial-gradient(
+    circle,
+    rgba(201,148,10,0.14) 0%,
+    transparent 100%
+  );
 }
 
-/* Crit: first wave ripple */
+/* Crit: sunburst rays using repeating-conic-gradient
+   The large circle is clipped naturally by the card overflow:hidden */
 .result-card--crit .result-card__value-ring::before {
   content: '';
   position: absolute;
-  inset: -6px;
+  width: 96px;
+  height: 96px;
   border-radius: 50%;
-  border: 1px solid rgba(240,192,64,0.28);
+  background: repeating-conic-gradient(
+    from 0deg,
+    rgba(201,148,10,0.50) 0deg 4deg,
+    transparent          4deg 14deg
+  );
+  z-index: -1;
   pointer-events: none;
 }
 
-/* Crit: second (outer) wave ripple — fainter */
+/* Crit: second tighter ray ring — fills the gap between
+   inner ring and the card deck-label above */
 .result-card--crit .result-card__value-ring::after {
   content: '';
   position: absolute;
-  inset: -12px;
+  width: 64px;
+  height: 64px;
   border-radius: 50%;
-  border: 1px solid rgba(240,192,64,0.12);
+  background: repeating-conic-gradient(
+    from 7deg,
+    rgba(201,148,10,0.22) 0deg 4deg,
+    transparent           4deg 14deg
+  );
+  z-index: -1;
   pointer-events: none;
 }
 
