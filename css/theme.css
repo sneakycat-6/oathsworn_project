@@ -258,7 +258,7 @@ body {
 
 /* ── "Coming soon" overlay on app card ──────────────────────── */
 .app-card--soon {
-  opacity: 0.6;
+  opacity: 0.78;
   pointer-events: none;
 }
 
