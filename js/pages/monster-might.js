@@ -298,14 +298,20 @@ function cardHTML(card, index, animDelay) {
        '</span>')
     : '';
 
+  const skullHTML = card.isDiscarded
+    ? '<span class="result-card__skull" aria-hidden="true">☠</span>'
+    : '';
+
   const inner = card.value === 0
     ? '<span class="result-card__deck-label">' + DECK_DEFS[card.deck].label + '</span>' +
       '<span class="result-card__blank-icon" aria-hidden="true">—</span>' +
-      redrawOriginHTML
+      redrawOriginHTML +
+      skullHTML
     : '<span class="result-card__deck-label">' + DECK_DEFS[card.deck].label + '</span>' +
       '<span class="result-card__value">' + card.value + '</span>' +
       (card.isCrit ? '<span class="result-card__crit-badge">Crit</span>' : '') +
-      redrawOriginHTML;
+      redrawOriginHTML +
+      skullHTML;
 
   const discardLabel = card.isDiscarded ? 'Restore' : 'Discard';
   const actionBtns =
