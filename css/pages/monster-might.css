@@ -393,7 +393,7 @@
 /* ── Individual result card ─────────────────────────────────── */
 .result-card {
   width: 72px;
-  height: 96px;
+  height: 108px;
   border-radius: var(--radius-md);
   border: 2px solid var(--card-border, var(--color-border));
   background-color: var(--color-bg-elevated);
@@ -604,7 +604,7 @@
   .deck-picker { grid-template-columns: 1fr 1fr; gap: var(--space-3); }
   .draw-controls { flex-direction: column; align-items: stretch; }
   .draw-controls__actions { justify-content: flex-end; }
-  .result-card { width: 60px; height: 90px; }
+  .result-card { width: 60px; height: 80px; }
   .result-card__value { font-size: var(--text-3xl); }
 }
 
@@ -669,37 +669,53 @@
   color: var(--color-text-muted);
 }
 
-/* ── Redraw button on result cards ──────────────────────────── */
-.result-card__redraw {
+/* ── Action buttons on result cards ─────────────────────────── */
+.result-card__actions {
   position: absolute;
-  bottom: 3px;
-  right: 3px;
-  width: 18px;
-  height: 18px;
-  border-radius: var(--radius-sm);
-  background-color: rgba(0, 0, 0, 0.5);
-  border: 1px solid var(--color-border);
-  color: var(--color-text-muted);
-  font-size: 11px;
-  line-height: 1;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  gap: 1px;
+  padding: 2px;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.65));
+}
+
+.result-card__btn {
+  flex: 1;
+  height: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
+  font-size: 13px;
+  font-family: system-ui, sans-serif;
+  background-color: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--color-border-bright);
+  border-radius: 2px;
+  color: var(--color-text-secondary);
   cursor: pointer;
-  opacity: 0;
-  transition: opacity var(--transition-fast),
-              background-color var(--transition-fast),
-              color var(--transition-fast);
+  line-height: 1;
+  transition: background-color var(--transition-fast),
+              color var(--transition-fast),
+              border-color var(--transition-fast);
 }
 
-.result-card:hover .result-card__redraw {
-  opacity: 1;
+.result-card__btn:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+  border-color: var(--card-accent, var(--color-gold-muted));
+  color: var(--card-accent, var(--color-gold));
 }
 
-.result-card__redraw:hover {
-  background-color: var(--color-gold-dim);
-  border-color: var(--color-gold-muted);
-  color: var(--color-gold-bright);
+.result-card__btn--discard.is-active {
+  background-color: rgba(155, 28, 28, 0.3);
+  border-color: var(--color-red-muted);
+  color: var(--color-red-bright);
+}
+
+.result-card__btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 /* Redrawn card indicator */
